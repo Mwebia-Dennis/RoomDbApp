@@ -6,8 +6,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
+import android.database.ContentObserver;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,6 +24,7 @@ import android.widget.Toast;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +38,11 @@ public class MainActivity extends AppCompatActivity {
     TaskDao taskDao;
     NotesAdapter adapter;
     List<Task> allTasks;
-    Boolean hasDataLoaded = false;
+    ContentObserver mObserver;
+
+
+    // Instance fields
+    Account mAccount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +74,27 @@ public class MainActivity extends AppCompatActivity {
                 AppDatabase.class, Configs.DatabaseName).build();
         taskDao = localDatabase.taskDao();
         getAllNotes();
+        mAccount = CreateSyncAccount(this);
+//        ContentResolver mResolver = getContentResolver();
+        /*
+         * Turn on periodic syncing
+         */
+
+        Log.i("mACCOUNT", "PASSED");
+        ContentResolver.addPeriodicSync(
+                mAccount,
+                Configs.AUTHORITY,
+                Bundle.EMPTY,
+                5);
+
+
+        mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+            public void onChange(boolean selfChange) {
+                Log.d("SyncAdapter notif: ", "received");
+                getAllNotes();
+            }
+        };
+        getContentResolver().registerContentObserver(Configs.URI_TASK, false, mObserver);
 
     }
 
@@ -71,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getAllNotes() {
+
         new Thread() {
             @Override
             public void run() {
@@ -79,11 +114,8 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     runOnUiThread(() -> {
 
-                        if(allTasks.size() > 0) {
-                            updateUi(allTasks);
-                        }else {
-                            getNotesFromFirestore();
-                        }
+                        Log.d("Received list", String.valueOf(allTasks.size()));
+                        updateUi(allTasks);
                     });
                     Thread.sleep(300);
                 } catch (InterruptedException e) {
@@ -99,37 +131,42 @@ public class MainActivity extends AppCompatActivity {
         adapter = new NotesAdapter(MainActivity.this, list);
         recyclerView.setAdapter(adapter);
     }
-    public void getNotesFromFirestore() {
-        Snackbar.make(findViewById(R.id.mainLayout), "Syncing data, please wait...",
-                Snackbar.LENGTH_LONG)
-                .show();
-        db.collection(Configs.userId).get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
 
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        Log.d("from firestore", "onSuccess: LIST EMPTY");
-                        Snackbar.make(findViewById(R.id.mainLayout), "User has no data backed up",
-                                Snackbar.LENGTH_LONG)
-                                .show();
-                    } else {
-                        // get all data and add to database
-                        if (!hasDataLoaded){
-                            allTasks = queryDocumentSnapshots.toObjects(Task.class);
 
-                            Log.d("size", String.valueOf(allTasks.size()));
-                            Util.saveDataToRoomDb(taskDao, allTasks);
-                            updateUi(allTasks);
-                            Log.d("from firestore"
-                                    , "onSuccess: " + allTasks);
-                            hasDataLoaded = true;
-                        }
-                    }
-        })
-                .addOnFailureListener(e -> {
 
-                    Log.d("from firestore", "onFailure: True");
-                    Toast.makeText(MainActivity.this, "could not load documents", Toast.LENGTH_SHORT).show();
-                });
+
+    /**
+     * Create a new placeholder account for the sync adapter
+     *
+     * @param context The application context
+     */
+    public static Account CreateSyncAccount(Context context) {
+        // Create the account type and default account
+        Account newAccount = new Account(
+                Configs.ACCOUNT, Configs.ACCOUNT_TYPE);
+        // Get an instance of the Android account manager
+        AccountManager accountManager =
+                (AccountManager) context.getSystemService(
+                        ACCOUNT_SERVICE);
+        Log.i("mACCOUNT FUN", "PASSED");
+        /*
+         * Add the account and account type, no password or user data
+         * If successful, return the Account object, otherwise report an error.
+         */
+        if (accountManager.addAccountExplicitly(newAccount, null, null)) {
+
+            ContentResolver.setIsSyncable(newAccount, Configs.AUTHORITY, 1);
+            ContentResolver.setSyncAutomatically(newAccount, Configs.AUTHORITY, true);
+
+        } else {
+            /*
+             * The account exists or some other error occurred. Log this, report it,
+             * or handle it internally.
+             */
+        }
+        return  newAccount;
     }
+
+
 
 }
