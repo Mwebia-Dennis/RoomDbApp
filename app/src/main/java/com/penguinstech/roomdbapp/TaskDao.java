@@ -16,7 +16,7 @@ public interface TaskDao {
     Task loadTaskById(int taskId);
 
     @Insert
-    void insertAll(Task... tasks);
+    void insertAll(List<Task> tasks);
 
     @Delete
     void delete(Task task);

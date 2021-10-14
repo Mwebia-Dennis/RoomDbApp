@@ -1,6 +1,6 @@
 package com.penguinstech.roomdbapp;
 
-public interface DatabaseConfigs {
+public interface Configs {
     String DatabaseName = "LocalAppDb";
-    String NoteCollection = "notes";
+    String userId = android.os.Build.MODEL;
 }

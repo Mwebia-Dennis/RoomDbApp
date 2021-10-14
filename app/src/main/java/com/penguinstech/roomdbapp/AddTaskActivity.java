@@ -11,8 +11,10 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AddTaskActivity extends AppCompatActivity {
@@ -34,7 +36,7 @@ public class AddTaskActivity extends AppCompatActivity {
         FirebaseApp.initializeApp(AddTaskActivity.this);
         db = FirebaseFirestore.getInstance();
         localDatabase = Room.databaseBuilder(getApplicationContext(),
-                AppDatabase.class, DatabaseConfigs.DatabaseName).build();
+                AppDatabase.class, Configs.DatabaseName).build();
         taskDao = localDatabase.taskDao();
         EditText titleET = findViewById(R.id.title_ET);
         EditText descriptionET = findViewById(R.id.description_ET);
@@ -49,41 +51,27 @@ public class AddTaskActivity extends AppCompatActivity {
                 descriptionET.setError("This field is required");
             }else {
 
-                SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                List<Task> taskList = new ArrayList<>();
                 taskInfo.put("title", title);
                 taskInfo.put("description", description);
-                taskInfo.put("updated_on", formatter.format(new Date()));
+                taskInfo.put("updatedAt", new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()));
                 saveDataToFirestore();
-                saveDataToRoomDb(taskInfo);
+                taskList.add(Util.convertMapToTaskObject(taskInfo));
+                Util.saveDataToRoomDb(taskDao, taskList);
             }
         });
     }
 
 
-    public void saveDataToRoomDb(Map<String, String> taskMap) {
-
-        new Thread() {
-            @Override
-            public void run() {
-
-                taskDao.insertAll(new Util().convertMapToTaskObject(taskMap));
-                try {
-                    runOnUiThread(() -> Toast.makeText(AddTaskActivity.this, "Object added to local DB", Toast.LENGTH_LONG).show());
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }.start();
-    }
 
     public void saveDataToFirestore() {
 
-        db.collection(DatabaseConfigs.NoteCollection)
-                .document("user_1")
-                .set(taskInfo)
+
+        db.collection(Configs.userId)
+                .add(taskInfo)
                 .addOnSuccessListener(documentReference -> {
                     Toast.makeText(AddTaskActivity.this, "Document added successfully", Toast.LENGTH_LONG).show();
+                    finish();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(AddTaskActivity.this, "Could not add document", Toast.LENGTH_LONG).show();

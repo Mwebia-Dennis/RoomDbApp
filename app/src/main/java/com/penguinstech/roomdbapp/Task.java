@@ -18,4 +18,15 @@ public class Task {
 
     @ColumnInfo(name = "updated_at")
     public String updatedAt;
+
+
+    public Task(){
+        //empty constructor very important
+    }
+
+    public Task(String title, String description, String updatedAt) {
+        this.title = title;
+        this.description = description;
+        this.updatedAt = updatedAt;
+    }
 }
