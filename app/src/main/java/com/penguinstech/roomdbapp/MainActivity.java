@@ -29,12 +29,13 @@ import com.google.firebase.firestore.Query;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
     FirebaseFirestore db;
     AppDatabase localDatabase;
-    Map<String, String> taskInfo = new HashMap<>();
+//    Map<String, String> taskInfo = new HashMap<>();
     TaskDao taskDao;
     NotesAdapter adapter;
     List<Task> allTasks;
@@ -91,10 +92,16 @@ public class MainActivity extends AppCompatActivity {
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
             public void onChange(boolean selfChange) {
                 Log.d("SyncAdapter notif: ", "received");
-                getAllNotes();
+                try {
+                    //delay for a second then check if db is updated
+                    TimeUnit.MILLISECONDS.sleep(100);
+                    getAllNotes();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         };
-        getContentResolver().registerContentObserver(Configs.URI_TASK, false, mObserver);
+        getContentResolver().registerContentObserver(Configs.URI_TASK, true, mObserver);
 
     }
 

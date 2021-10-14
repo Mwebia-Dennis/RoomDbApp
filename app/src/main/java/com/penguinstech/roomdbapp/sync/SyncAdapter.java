@@ -138,6 +138,12 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                 List<Task> lastTask = queryDocumentSnapshots.toObjects(Task.class);
                 Task task = lastTask.get(0);
                 Log.d("last task", task.title);
+
+
+
+
+
+
             }
 
         })
