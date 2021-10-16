@@ -7,4 +7,6 @@
     <string name="title">title</string>
     <string name="add_note">Add Note</string>
     <string name="description">description</string>
+    <string name="firestore">Firestore</string>
+    <string name="room_db">Room DB</string>
 </resources>

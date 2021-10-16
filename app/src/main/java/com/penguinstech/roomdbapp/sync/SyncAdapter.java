@@ -17,6 +17,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.penguinstech.roomdbapp.AddTaskActivity;
 import com.penguinstech.roomdbapp.AppDatabase;
 import com.penguinstech.roomdbapp.Configs;
 import com.penguinstech.roomdbapp.MainActivity;
@@ -24,7 +25,12 @@ import com.penguinstech.roomdbapp.R;
 import com.penguinstech.roomdbapp.Task;
 import com.penguinstech.roomdbapp.Util;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Handle the transfer of data between a server and an
@@ -45,6 +51,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          * If your app uses a content resolver, get an instance of it
          * from the incoming Context
          */
+//        android.os.Debug.waitForDebugger();
+
         contentResolver = context.getContentResolver();
         FirebaseApp.initializeApp(context);
         db = FirebaseFirestore.getInstance();
@@ -81,11 +89,12 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         //if empty, load data from firebase if any.
         //if there is data in database, compare if its upto to date with server and update as necessary
         List<Task> allTasks = localDatabase.taskDao().getAll();
-        Log.i("sfdsfds", "sdfsfdd");
+        Log.i("perfomingSync", "True");
+        Log.i("Sync results", String.valueOf(allTasks.size()));
         if(allTasks.size() > 0) {
             backupToFirestore();
         }else {
-            getNotesFromFirestore();
+            syncAllNotesFromFirestore();
         }
 
 
@@ -95,12 +104,12 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
 
-    public void getNotesFromFirestore() {
+    public void syncAllNotesFromFirestore() {
         db.collection(Configs.userId).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
 
                     if (queryDocumentSnapshots.isEmpty()) {
-                        Log.d("from firestore", "onSuccess: LIST EMPTY");
+                        Log.d("firestore onSuccess", "LIST EMPTY");
                     } else {
                         // get all data and add to database
                         if (!hasDataLoaded){
@@ -116,7 +125,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                 })
                 .addOnFailureListener(e -> {
 
-                    Log.d("from firestore", "onFailure: True");
+                    Log.d("firestore onFailure", ": True");
                 });
     }
 
@@ -129,6 +138,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          * else update
          */
 
+        List<Task> localLatestTask = localDatabase.taskDao().getLatestTask();
+        Log.d("latestTask", localLatestTask.get(0).title);
         db.collection(Configs.userId)
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .limit(1)
@@ -137,13 +148,34 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             if (!queryDocumentSnapshots.isEmpty()) {
                 List<Task> lastTask = queryDocumentSnapshots.toObjects(Task.class);
                 Task task = lastTask.get(0);
-                Log.d("last task", task.title);
+//                Log.d("last task", task.title);
+                try {
+
+                    Date localLatestTaskDate = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH)
+                            .parse(localLatestTask.get(0).updatedAt);
+                    Date firestoreLatestTaskDate = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH)
+                            .parse(task.updatedAt);
+
+                    if(localLatestTaskDate.after(firestoreLatestTaskDate)) {
+                        //update firebase
+                        //get all data that is not backed up ie date after @param firestore Last Task Date
+                        Log.d("firestore", "not updated");
+                        saveDataToFirestore(false, task.updatedAt);
+
+                    }else if(firestoreLatestTaskDate.after(localLatestTaskDate)) {
+                        //update the local database
+//                        saveDataToLocalDb(localLatestTaskDate.toString());
+                        //todo: check if user has deleted task from local db
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
 
 
-
-
-
-
+            }else {
+                //no backed up data so update the whole firestore
+                saveDataToFirestore(true, "");
+                Log.d("backup data", "0");
             }
 
         })
@@ -153,4 +185,50 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                 });
 
     }
+
+    private void saveDataToLocalDb(String localLatestDate) {
+        db.collection(Configs.userId)
+                .whereGreaterThan("updatedAt", localLatestDate)
+                .orderBy("updatedAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                    if (!queryDocumentSnapshots.isEmpty()) {
+
+
+                        List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
+                        Log.d("size", String.valueOf(backedUpTasks.size()));
+                        Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
+                    }
+
+                })
+                .addOnFailureListener(e->{
+                    e.printStackTrace();
+                   Log.d("Sync", "failed");
+                });
+    }
+
+    private void saveDataToFirestore(boolean isAllData, String updatedAt) {
+
+        new Thread() {
+            @Override
+            public void run() {
+
+                List<Task> newTasks = isAllData?localDatabase.taskDao().getAll():localDatabase.taskDao().filterByDate(updatedAt);
+                for (Task task: newTasks) {
+                    db.collection(Configs.userId)
+                            .add(task)
+                            .addOnSuccessListener(documentReference -> {
+                                Log.d("backing Data", "Successful");
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.d("backing Data", "Failed");
+                            });
+                }
+            }
+        }.start();
+
+
+    }
+
 }

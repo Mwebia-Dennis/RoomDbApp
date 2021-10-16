@@ -81,12 +81,15 @@ public class MainActivity extends AppCompatActivity {
          * Turn on periodic syncing
          */
 
-        Log.i("mACCOUNT", "PASSED");
+
         ContentResolver.addPeriodicSync(
                 mAccount,
                 Configs.AUTHORITY,
                 Bundle.EMPTY,
-                5);
+                70);
+
+        Log.i("mACCOUNT", "PASSED");
+
 
 
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
@@ -156,6 +159,8 @@ public class MainActivity extends AppCompatActivity {
                 (AccountManager) context.getSystemService(
                         ACCOUNT_SERVICE);
         Log.i("mACCOUNT FUN", "PASSED");
+
+
         /*
          * Add the account and account type, no password or user data
          * If successful, return the Account object, otherwise report an error.
@@ -165,12 +170,17 @@ public class MainActivity extends AppCompatActivity {
             ContentResolver.setIsSyncable(newAccount, Configs.AUTHORITY, 1);
             ContentResolver.setSyncAutomatically(newAccount, Configs.AUTHORITY, true);
 
+
         } else {
             /*
              * The account exists or some other error occurred. Log this, report it,
              * or handle it internally.
              */
+
+            Log.d("Account", "exists");
         }
+
+
         return  newAccount;
     }
 
