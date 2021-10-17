@@ -42,7 +42,7 @@ public class AddTaskActivity extends AppCompatActivity {
         EditText titleET1 = findViewById(R.id.title_ET);
         EditText descriptionET1 = findViewById(R.id.description_ET);
         findViewById(R.id.addToLocalNoteBtn).setOnClickListener(v->{
-            saveData(titleET1, descriptionET1, 1);
+            saveData(titleET1, descriptionET1);
         });
 //        findViewById(R.id.addToFirestoreNoteBtn).setOnClickListener(v->{
 //            saveData(titleET1, descriptionET1, 2);
@@ -52,7 +52,7 @@ public class AddTaskActivity extends AppCompatActivity {
 //        });
     }
 
-    private void saveData(EditText titleET, EditText descriptionET, int dbType) {
+    private void saveData(EditText titleET, EditText descriptionET) {
 
         String title = titleET.getText().toString();
         String description = descriptionET.getText().toString();
@@ -68,38 +68,27 @@ public class AddTaskActivity extends AppCompatActivity {
             taskInfo.put("description", description);
             taskInfo.put("updatedAt", new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
 
-            if(dbType == 1){
-                //save to local
-                taskList.add(Util.convertMapToTaskObject(taskInfo));
-                Util.saveDataToRoomDb(taskDao, taskList);
-                Toast.makeText(AddTaskActivity.this, "Document added successfully", Toast.LENGTH_LONG).show();
-                finish();
 
-            }else if(dbType == 2){
-                //save to firestore
-                saveDataToFirestore();
-
-            }else if(dbType == 3){
-                //save to both
-                saveDataToFirestore();
-                taskList.add(Util.convertMapToTaskObject(taskInfo));
-                Util.saveDataToRoomDb(taskDao, taskList);
-            }
+            //save to local
+            taskList.add(Util.convertMapToTaskObject(taskInfo));
+            Util.saveDataToRoomDb(taskDao, taskList);
+            Toast.makeText(AddTaskActivity.this, "Document added successfully", Toast.LENGTH_LONG).show();
+            finish();
         }
     }
 
 
-    public void saveDataToFirestore() {
-
-
-        db.collection(Configs.userId)
-                .add(taskInfo)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(AddTaskActivity.this, "Document added successfully", Toast.LENGTH_LONG).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(AddTaskActivity.this, "Could not add document", Toast.LENGTH_LONG).show();
-                });
-    }
+//    public void saveDataToFirestore() {
+//
+//
+//        db.collection(Configs.userId)
+//                .add(taskInfo)
+//                .addOnSuccessListener(documentReference -> {
+//                    Toast.makeText(AddTaskActivity.this, "Document added successfully", Toast.LENGTH_LONG).show();
+//                    finish();
+//                })
+//                .addOnFailureListener(e -> {
+//                    Toast.makeText(AddTaskActivity.this, "Could not add document", Toast.LENGTH_LONG).show();
+//                });
+//    }
 }
