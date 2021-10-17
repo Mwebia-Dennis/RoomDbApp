@@ -44,12 +44,12 @@ public class AddTaskActivity extends AppCompatActivity {
         findViewById(R.id.addToLocalNoteBtn).setOnClickListener(v->{
             saveData(titleET1, descriptionET1, 1);
         });
-        findViewById(R.id.addToFirestoreNoteBtn).setOnClickListener(v->{
-            saveData(titleET1, descriptionET1, 2);
-        });
-        findViewById(R.id.addNoteBtn).setOnClickListener(v->{
-            saveData(titleET1, descriptionET1, 3);
-        });
+//        findViewById(R.id.addToFirestoreNoteBtn).setOnClickListener(v->{
+//            saveData(titleET1, descriptionET1, 2);
+//        });
+//        findViewById(R.id.addNoteBtn).setOnClickListener(v->{
+//            saveData(titleET1, descriptionET1, 3);
+//        });
     }
 
     private void saveData(EditText titleET, EditText descriptionET, int dbType) {
