@@ -9,4 +9,17 @@
     <string name="description">description</string>
     <string name="firestore">Firestore</string>
     <string name="room_db">Room DB</string>
+    <string name="subscribe">Subscribe</string>
+    <string name="_0mb_space">0mb Space</string>
+    <string name="_5mb_space">5mb Space</string>
+    <string name="_10mb_space">10mb Space</string>
+    <string name="_15mb_space">15mb Space</string>
+    <string name="bronze">Bronze</string>
+    <string name="silver">Silver</string>
+    <string name="gold">Gold</string>
+    <string name="current_plan">Your are using a free subscription plan</string>
+    <string name="bronze_plan">Your are now on bronze subscription plan</string>
+    <string name="silver_plan">Your are now on silver subscription plan</string>
+    <string name="gold_plan">Your are now on gold subscription plan</string>
+    <string name="free">Free</string>
 </resources>

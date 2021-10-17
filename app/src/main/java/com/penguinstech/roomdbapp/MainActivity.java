@@ -64,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.addTask) {
             startActivity(new Intent(MainActivity.this, AddTaskActivity.class));
+        }else if (item.getItemId() == R.id.subscribe) {
+            startActivity(new Intent(MainActivity.this, SubscribeActivity.class));
         }
         return super.onOptionsItemSelected(item);
     }
@@ -91,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
         Log.i("mACCOUNT", "PASSED");
 
 
-
+        //register an observer to notify when room db is updated
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
             public void onChange(boolean selfChange) {
                 Log.d("SyncAdapter notif: ", "received");

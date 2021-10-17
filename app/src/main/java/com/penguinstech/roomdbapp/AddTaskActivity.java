@@ -72,6 +72,8 @@ public class AddTaskActivity extends AppCompatActivity {
                 //save to local
                 taskList.add(Util.convertMapToTaskObject(taskInfo));
                 Util.saveDataToRoomDb(taskDao, taskList);
+                Toast.makeText(AddTaskActivity.this, "Document added successfully", Toast.LENGTH_LONG).show();
+                finish();
 
             }else if(dbType == 2){
                 //save to firestore

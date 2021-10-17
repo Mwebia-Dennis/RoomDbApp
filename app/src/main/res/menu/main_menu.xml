@@ -9,4 +9,12 @@
         app:showAsAction="ifRoom"
         />
 
+    <item
+        android:icon="@drawable/ic_baseline_ads_click_24"
+        android:title="@string/subscribe"
+        android:id="@+id/subscribe"
+        app:showAsAction="never"
+        />
+
+
 </menu>
