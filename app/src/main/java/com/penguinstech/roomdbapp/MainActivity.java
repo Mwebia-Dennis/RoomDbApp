@@ -12,6 +12,7 @@ import androidx.work.WorkManager;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -73,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void init() {
+        checkIfUserIsLoggedIn();
         FirebaseApp.initializeApp(MainActivity.this);
         db = FirebaseFirestore.getInstance();
         localDatabase = Room.databaseBuilder(getApplicationContext(),
@@ -84,8 +86,14 @@ public class MainActivity extends AppCompatActivity {
         mAccount = CreateSyncAccount(this);
 //        ContentResolver mResolver = getContentResolver();
         /*
-         * Turn on periodic syncing after every 15 minutes
+         * Turn on periodic syncing after every 1 hr
          */
+
+        ContentResolver.addPeriodicSync(
+                mAccount,
+                Configs.AUTHORITY,
+                Bundle.EMPTY,
+                (60 * 60));
 
         final PeriodicWorkRequest periodicWorkRequest
                 = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
@@ -111,9 +119,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void checkIfUserIsLoggedIn() {
+
+        Log.d("username", Util.getUserName(MainActivity.this));
+        if (Util.getUserName(MainActivity.this).equals("")) {
+            startActivity(new Intent(MainActivity.this, AuthenticacteActivity.class));
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        checkIfUserIsLoggedIn();
         getAllNotes();
     }
 

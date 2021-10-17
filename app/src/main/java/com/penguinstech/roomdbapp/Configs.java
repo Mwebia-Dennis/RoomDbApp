@@ -3,7 +3,6 @@ package com.penguinstech.roomdbapp;
 import android.net.Uri;
 
 public interface Configs {
-    String userId = android.os.Build.MODEL;
     String DatabaseName = "LocalAppDb";
     String tableName = "task";
     String subscriptionTableName = "subscriptions";

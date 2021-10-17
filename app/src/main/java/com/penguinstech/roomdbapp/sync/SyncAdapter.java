@@ -41,6 +41,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     FirebaseFirestore db;
     AppDatabase localDatabase;
     Boolean hasDataLoaded = false;
+    Context context;
 
     /**
      * Set up the sync adapter
@@ -58,6 +59,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         db = FirebaseFirestore.getInstance();
         localDatabase = Room.databaseBuilder(context,
                 AppDatabase.class, Configs.DatabaseName).build();
+        this.context = context;
     }
 
     /**
@@ -105,7 +107,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
 
     public void syncAllNotesFromFirestore() {
-        db.collection(Configs.userId).get()
+        db.collection(Util.getUserName(context)).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
 
                     if (queryDocumentSnapshots.isEmpty()) {
@@ -140,7 +142,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         List<Task> localLatestTask = localDatabase.taskDao().getLatestTask();
         Log.d("latestTask", localLatestTask.get(0).title);
-        db.collection(Configs.userId)
+        db.collection(Util.getUserName(context))
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .limit(1)
                 .get().addOnSuccessListener(queryDocumentSnapshots -> {
@@ -187,7 +189,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void saveDataToLocalDb(String localLatestDate) {
-        db.collection(Configs.userId)
+        db.collection(Util.getUserName(context))
                 .whereGreaterThan("updatedAt", localLatestDate)
                 .orderBy("updatedAt", Query.Direction.DESCENDING)
                 .get()
@@ -216,7 +218,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 List<Task> newTasks = isAllData?localDatabase.taskDao().getAll():localDatabase.taskDao().filterByDate(updatedAt);
                 for (Task task: newTasks) {
-                    db.collection(Configs.userId)
+                    db.collection(Util.getUserName(context))
                             .add(task)
                             .addOnSuccessListener(documentReference -> {
                                 Log.d("backing Data", "Successful");
