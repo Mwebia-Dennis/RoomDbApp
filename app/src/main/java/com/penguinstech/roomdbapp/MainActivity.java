@@ -5,6 +5,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
+import androidx.work.Constraints;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -25,6 +29,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.penguinstech.roomdbapp.sync.SyncWorker;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,9 +45,6 @@ public class MainActivity extends AppCompatActivity {
     NotesAdapter adapter;
     List<Task> allTasks;
     ContentObserver mObserver;
-
-
-    // Instance fields
     Account mAccount;
 
     @Override
@@ -76,22 +78,20 @@ public class MainActivity extends AppCompatActivity {
         localDatabase = Room.databaseBuilder(getApplicationContext(),
                 AppDatabase.class, Configs.DatabaseName).build();
         taskDao = localDatabase.taskDao();
+        Snackbar.make(findViewById(R.id.mainLayout), "Loading data please wait...", Snackbar.LENGTH_SHORT).show();
         getAllNotes();
+
         mAccount = CreateSyncAccount(this);
 //        ContentResolver mResolver = getContentResolver();
         /*
-         * Turn on periodic syncing
+         * Turn on periodic syncing after every 15 minutes
          */
 
-
-        ContentResolver.addPeriodicSync(
-                mAccount,
-                Configs.AUTHORITY,
-                Bundle.EMPTY,
-                70);
-
-        Log.i("mACCOUNT", "PASSED");
-
+        final PeriodicWorkRequest periodicWorkRequest
+                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build();
+        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
 
         //register an observer to notify when room db is updated
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     //delay for a second then check if db is updated
                     TimeUnit.MILLISECONDS.sleep(100);
+                    Snackbar.make(findViewById(R.id.mainLayout), "Sync results updated successfully", Snackbar.LENGTH_LONG).show();
                     getAllNotes();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -185,6 +186,8 @@ public class MainActivity extends AppCompatActivity {
 
         return  newAccount;
     }
+
+
 
 
 
