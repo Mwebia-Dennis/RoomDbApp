@@ -81,33 +81,33 @@
         android:text="@string/room_db"
         android:layout_below="@id/descriptionContainer"
         android:layout_marginTop="50dp"
-        android:layout_toStartOf="@id/addNoteBtn"
+        android:layout_centerInParent="true"
         android:layout_marginEnd="5dp"
         android:id="@+id/addToLocalNoteBtn"
         />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/add_note"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/descriptionContainer"
-        android:layout_marginTop="50dp"
-        android:id="@+id/addNoteBtn"
-        />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="@string/add_note"-->
+<!--        android:layout_centerHorizontal="true"-->
+<!--        android:layout_below="@id/descriptionContainer"-->
+<!--        android:layout_marginTop="50dp"-->
+<!--        android:id="@+id/addNoteBtn"-->
+<!--        />-->
 
 
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/firestore"
-        android:layout_below="@id/descriptionContainer"
-        android:layout_marginTop="50dp"
-        android:layout_toEndOf="@id/addNoteBtn"
-        android:layout_marginStart="5dp"
-        android:id="@+id/addToFirestoreNoteBtn"
-        />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="@string/firestore"-->
+<!--        android:layout_below="@id/descriptionContainer"-->
+<!--        android:layout_marginTop="50dp"-->
+<!--        android:layout_toEndOf="@id/addNoteBtn"-->
+<!--        android:layout_marginStart="5dp"-->
+<!--        android:id="@+id/addToFirestoreNoteBtn"-->
+<!--        />-->
 
 
 
