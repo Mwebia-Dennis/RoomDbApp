@@ -9,6 +9,11 @@ import android.widget.Toast;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.penguinstech.roomdbapp.room_db.AppDatabase;
+import com.penguinstech.roomdbapp.room_db.Task;
+import com.penguinstech.roomdbapp.room_db.TaskDao;
+import com.penguinstech.roomdbapp.utils.Util;
+import com.penguinstech.roomdbapp.utils.Configs;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,7 +27,7 @@ public class AddTaskActivity extends AppCompatActivity {
 
     FirebaseFirestore db;
     AppDatabase localDatabase;
-    Map<String, String> taskInfo = new HashMap<>();
+    Map<String, Object> taskInfo = new HashMap<>();
     TaskDao taskDao;
 
     @Override

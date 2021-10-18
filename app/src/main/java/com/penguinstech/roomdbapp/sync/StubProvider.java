@@ -1,22 +1,9 @@
 package com.penguinstech.roomdbapp.sync;
 
 import android.content.ContentProvider;
-import android.content.ContentUris;
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
-
-import androidx.annotation.Nullable;
-import androidx.room.Room;
-
-import com.penguinstech.roomdbapp.AppDatabase;
-import com.penguinstech.roomdbapp.Configs;
-import com.penguinstech.roomdbapp.Task;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /*
  * Define an implementation of ContentProvider that stubs out

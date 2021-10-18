@@ -1,20 +1,18 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.utils;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.penguinstech.roomdbapp.room_db.Subscription;
+import com.penguinstech.roomdbapp.room_db.SubscriptionDao;
+import com.penguinstech.roomdbapp.room_db.Task;
+import com.penguinstech.roomdbapp.room_db.TaskDao;
 
-import java.lang.reflect.Type;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class Util {
@@ -67,10 +65,11 @@ public class Util {
         }.start();
     }
 
-    public static Task convertMapToTaskObject (Map<String, String> taskMap) {
+    public static Task convertMapToTaskObject (Map<String, Object> taskMap) {
         Gson gson = new Gson();
         JsonElement jsonElement = gson.toJsonTree(taskMap);
         return gson.fromJson(jsonElement, Task.class);
     }
+
 
 }

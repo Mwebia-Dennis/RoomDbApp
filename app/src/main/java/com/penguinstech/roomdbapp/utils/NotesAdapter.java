@@ -1,14 +1,16 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.utils;
 
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.penguinstech.roomdbapp.R;
+import com.penguinstech.roomdbapp.room_db.Task;
 
 import java.util.List;
 

@@ -2,9 +2,10 @@ package com.penguinstech.roomdbapp;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.widget.EditText;
+
+import com.penguinstech.roomdbapp.utils.Util;
 
 public class AuthenticacteActivity extends AppCompatActivity {
 

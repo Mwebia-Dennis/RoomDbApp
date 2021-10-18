@@ -12,29 +12,29 @@ import androidx.work.WorkManager;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.penguinstech.roomdbapp.room_db.AppDatabase;
+import com.penguinstech.roomdbapp.room_db.Task;
+import com.penguinstech.roomdbapp.room_db.TaskDao;
+import com.penguinstech.roomdbapp.utils.Util;
 import com.penguinstech.roomdbapp.sync.SyncWorker;
+import com.penguinstech.roomdbapp.utils.Configs;
+import com.penguinstech.roomdbapp.utils.NotesAdapter;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {

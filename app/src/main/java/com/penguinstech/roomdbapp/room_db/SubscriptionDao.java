@@ -1,4 +1,4 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.room_db;
 
 import androidx.room.Dao;
 import androidx.room.Delete;
@@ -6,12 +6,14 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 
+import com.penguinstech.roomdbapp.utils.Configs;
+
 import java.util.List;
 
 @Dao
 public interface SubscriptionDao {
 
-    @Query("SELECT * FROM "+Configs.subscriptionTableName)
+    @Query("SELECT * FROM "+ Configs.subscriptionTableName)
     List<Subscription> getAll();
 
 

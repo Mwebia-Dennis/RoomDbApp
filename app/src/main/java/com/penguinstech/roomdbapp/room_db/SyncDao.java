@@ -1,9 +1,11 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.room_db;
 
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
+
+import com.penguinstech.roomdbapp.utils.Configs;
 
 import java.util.List;
 
@@ -11,7 +13,7 @@ import java.util.List;
 public interface SyncDao {
 
 
-    @Query("SELECT * FROM "+Configs.syncTableName+" WHERE user_id = :userId")
+    @Query("SELECT * FROM "+ Configs.syncTableName+" WHERE user_id = :userId")
     SyncInfo loadSyncInfoByUserId(int userId);
 
     @Insert

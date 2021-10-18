@@ -4,11 +4,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.room.Room;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 
+import com.penguinstech.roomdbapp.room_db.AppDatabase;
+import com.penguinstech.roomdbapp.room_db.Subscription;
+import com.penguinstech.roomdbapp.utils.Util;
+import com.penguinstech.roomdbapp.utils.AppSubscriptionPlans;
+import com.penguinstech.roomdbapp.utils.Configs;
+
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;

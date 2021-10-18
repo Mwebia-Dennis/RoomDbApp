@@ -1,4 +1,4 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.utils;
 
 public enum AppSubscriptionPlans {
     FREE("Free", 0), BRONZE("Bronze", 5), SILVER("Silver", 10), GOLD("Gold", 15);

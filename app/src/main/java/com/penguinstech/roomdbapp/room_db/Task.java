@@ -1,4 +1,4 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.room_db;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
@@ -20,13 +20,19 @@ public class Task {
     public String updatedAt;
 
 
+    @ColumnInfo(name = "is_deleted", defaultValue = "0")
+    public int isDeleted;
+
+
     public Task(){
         //empty constructor very important
     }
 
-    public Task(String title, String description, String updatedAt) {
+    public Task(String title, String description, String updatedAt, int isDeleted) {
         this.title = title;
         this.description = description;
         this.updatedAt = updatedAt;
+        this.isDeleted = isDeleted;
     }
+
 }
