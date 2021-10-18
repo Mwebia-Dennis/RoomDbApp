@@ -66,7 +66,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.addTask) {
-            startActivity(new Intent(MainActivity.this, AddTaskActivity.class));
+            Intent i = new Intent(MainActivity.this, AddTaskActivity.class);
+            i.putExtra("task", "test");
+            startActivity(i);
         }else if (item.getItemId() == R.id.subscribe) {
             startActivity(new Intent(MainActivity.this, SubscribeActivity.class));
         }
@@ -95,11 +97,11 @@ public class MainActivity extends AppCompatActivity {
                 Bundle.EMPTY,
                 (60 * 60));
 
-        final PeriodicWorkRequest periodicWorkRequest
-                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
-                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build();
-        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
+//        final PeriodicWorkRequest periodicWorkRequest
+//                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
+//                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+//                .build();
+//        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
 
         //register an observer to notify when room db is updated
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
@@ -140,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
 
-                allTasks = taskDao.getAll();
+                allTasks = taskDao.getNonDeletedTasks();
                 try {
                     runOnUiThread(() -> {
 

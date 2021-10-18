@@ -264,7 +264,21 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                                             //update server
                                             List<DocumentSnapshot> docsList = queryDocumentSnapshots.getDocuments();
-                                            if (docsList.size() > 0)updateServer(task, tableName, docsList.get(0).getId());
+                                            int value = task.isDeleted;
+                                            Log.d("value", String.valueOf(value));
+                                            if (docsList.size() > 0){
+                                                if (task.isDeleted == 1) {
+                                                    //delete data from firebase
+                                                    db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                                                            .document(docsList.get(0).getId()).delete()
+                                                            .addOnSuccessListener(aVoid -> {
+
+                                                                Log.d("Deleting data", "successful");
+                                                            });
+                                                }else {
+                                                    updateServer(task, tableName, docsList.get(0).getId());
+                                                }
+                                            }
 
                                         } else {
                                             db.collection(Util.getUserName(context))
@@ -307,7 +321,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         Token token = localDatabase.tokenDao().loadLastSyncToken();
         //retrieve firebase last sync from firebase database
 
-        firebaseDatabase.child(tableName).child("last_sync_token").get().addOnSuccessListener(dataSnapshot -> {
+        firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").get().addOnSuccessListener(dataSnapshot -> {
 
             if (dataSnapshot.exists() && token != null){
                 //check if the current client was the last one to update the server
@@ -365,7 +379,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         new Thread(()->{
 
-            //paginating to avoid filling the memory with data
+            //getting data in small batches to avoid filling the memory with data
             int totalNewData = localDatabase.taskDao().filterByDateCount(tokenLastSync);
             int batchSize = 0;
             while (batchSize <= totalNewData) {
@@ -409,7 +423,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                                             } else {
                                                 //add data to map and update firestore
-                                                updateServer(task, tableName, doc.getId());                                            }
+                                                updateServer(task, tableName, doc.getId());
+                                            }
 
                                         } else if (firestoreTaskDate.after(localTaskDate)) {//is firestore after the local updated date
                                             //update the local database
@@ -426,7 +441,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                             }else {
                                 ///doc does not exist in firebase
                                 //check if it was deleted
-                                //if not add to firebaase
+                                //if not add to firebase
                                 if(task.isDeleted  != 1) {
                                     db.collection(Util.getUserName(context))
                                             .add(task)
@@ -464,10 +479,11 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void updateToken(String tableName) {
 
+        //update both local and firestore last sync date
         String deviceId= Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
         Token newToken = new Token(deviceId, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
 
-        firebaseDatabase.child(tableName).child("last_sync_token").setValue(newToken).addOnSuccessListener(aVoid -> {
+        firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").setValue(newToken).addOnSuccessListener(aVoid -> {
 
             Log.d("firebasse token", "updated successfully");
         });
@@ -496,5 +512,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("firebase", "updated succesfully");
         });
     }
+
 
 }

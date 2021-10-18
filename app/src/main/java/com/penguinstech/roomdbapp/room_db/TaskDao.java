@@ -17,6 +17,10 @@ public interface TaskDao {
     List<Task> getAll();
 
 
+    @Query("SELECT * FROM "+ Configs.tableName+" where is_deleted != 1 order by updated_at desc")
+    List<Task> getNonDeletedTasks();
+
+
     @Query("SELECT * FROM "+ Configs.tableName+" order by updated_at asc limit :limit offset :offset")
     List<Task> getAll(int limit, int offset);
 
@@ -45,6 +49,6 @@ public interface TaskDao {
     @Update
     void update(Task task);
 
-    @Query("UPDATE "+Configs.tableName+" SET is_deleted = 1 WHERE id = :taskId")
-    void delete(int taskId);
+    @Query("UPDATE "+Configs.tableName+" SET is_deleted = 1,updated_at = :updatedAt WHERE id = :taskId")
+    void delete(int taskId, String updatedAt);
 }

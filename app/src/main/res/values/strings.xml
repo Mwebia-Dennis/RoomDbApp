@@ -25,4 +25,6 @@
     <string name="enter_user_naame_to_log_in">Enter user name to Log in</string>
     <string name="user_name">User name</string>
     <string name="log_in">Log in</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
 </resources>

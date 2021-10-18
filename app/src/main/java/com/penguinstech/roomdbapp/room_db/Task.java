@@ -35,4 +35,12 @@ public class Task {
         this.isDeleted = isDeleted;
     }
 
+    public Task(int id, String title, String description, String updatedAt, int isDeleted) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.updatedAt = updatedAt;
+        this.isDeleted = isDeleted;
+    }
+
 }
