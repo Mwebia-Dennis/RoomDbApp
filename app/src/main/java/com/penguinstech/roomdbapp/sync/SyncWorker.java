@@ -8,7 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.penguinstech.roomdbapp.Configs;
+import com.penguinstech.roomdbapp.utils.Configs;
 import com.penguinstech.roomdbapp.MainActivity;
 
 public class SyncWorker extends Worker {

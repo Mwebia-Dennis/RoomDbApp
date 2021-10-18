@@ -16,24 +16,25 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.penguinstech.roomdbapp.room_db.AppDatabase;
+import com.penguinstech.roomdbapp.room_db.Task;
+import com.penguinstech.roomdbapp.room_db.TaskDao;
+import com.penguinstech.roomdbapp.utils.Util;
 import com.penguinstech.roomdbapp.sync.SyncWorker;
+import com.penguinstech.roomdbapp.utils.Configs;
+import com.penguinstech.roomdbapp.utils.NotesAdapter;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
@@ -65,7 +66,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.addTask) {
-            startActivity(new Intent(MainActivity.this, AddTaskActivity.class));
+            Intent i = new Intent(MainActivity.this, AddTaskActivity.class);
+            i.putExtra("task", "test");
+            startActivity(i);
         }else if (item.getItemId() == R.id.subscribe) {
             startActivity(new Intent(MainActivity.this, SubscribeActivity.class));
         }
@@ -73,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void init() {
+        checkIfUserIsLoggedIn();
         FirebaseApp.initializeApp(MainActivity.this);
         db = FirebaseFirestore.getInstance();
         localDatabase = Room.databaseBuilder(getApplicationContext(),
@@ -84,14 +88,20 @@ public class MainActivity extends AppCompatActivity {
         mAccount = CreateSyncAccount(this);
 //        ContentResolver mResolver = getContentResolver();
         /*
-         * Turn on periodic syncing after every 15 minutes
+         * Turn on periodic syncing after every 1 hr
          */
 
-        final PeriodicWorkRequest periodicWorkRequest
-                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
-                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build();
-        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
+        ContentResolver.addPeriodicSync(
+                mAccount,
+                Configs.AUTHORITY,
+                Bundle.EMPTY,
+                (60 * 60));
+
+//        final PeriodicWorkRequest periodicWorkRequest
+//                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
+//                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+//                .build();
+//        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
 
         //register an observer to notify when room db is updated
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
@@ -111,9 +121,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void checkIfUserIsLoggedIn() {
+
+        Log.d("username", Util.getUserName(MainActivity.this));
+        if (Util.getUserName(MainActivity.this).equals("")) {
+            startActivity(new Intent(MainActivity.this, AuthenticacteActivity.class));
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        checkIfUserIsLoggedIn();
         getAllNotes();
     }
 
@@ -123,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
 
-                allTasks = taskDao.getAll();
+                allTasks = taskDao.getNonDeletedTasks();
                 try {
                     runOnUiThread(() -> {
 

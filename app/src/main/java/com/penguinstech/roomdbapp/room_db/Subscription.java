@@ -1,8 +1,10 @@
-package com.penguinstech.roomdbapp;
+package com.penguinstech.roomdbapp.room_db;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+
+import com.penguinstech.roomdbapp.utils.Configs;
 
 
 @Entity(tableName = Configs.subscriptionTableName)

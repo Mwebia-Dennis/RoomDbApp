@@ -21,7 +21,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RoomDbApp">
-        <activity android:name=".SubscribeActivity"></activity>
+        <activity android:name=".AuthenticacteActivity"></activity>
+        <activity android:name=".SubscribeActivity" />
         <activity android:name=".AddTaskActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
