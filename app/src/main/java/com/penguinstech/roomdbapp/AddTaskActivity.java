@@ -52,15 +52,14 @@ public class AddTaskActivity extends AppCompatActivity {
         EditText titleET1 = findViewById(R.id.title_ET);
         EditText descriptionET1 = findViewById(R.id.description_ET);
 
-
         Intent intent = getIntent();
-        if(intent.getStringExtra("id") != null && !intent.getStringExtra("id").equals("")) {
+        if(intent.getStringExtra("id") != null) {
             receivedTask = new Task(
                     Integer.parseInt(intent.getStringExtra("id")),
                     intent.getStringExtra("title"),
                     intent.getStringExtra("description"),
-                    intent.getStringExtra("isDeleted"),
-                    Integer.parseInt(intent.getStringExtra("updatedAt"))
+                    intent.getStringExtra("updatedAt"),
+                    Integer.parseInt(intent.getStringExtra("isDeleted"))
                     );
             titleET1.setText(receivedTask.title);
             descriptionET1.setText(receivedTask.description);
@@ -96,7 +95,9 @@ public class AddTaskActivity extends AppCompatActivity {
                 receivedTask.title = title;
                 receivedTask.description = description;
                 receivedTask.updatedAt = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date());
-                taskDao.update(receivedTask);
+                new Thread(()->{
+                    taskDao.update(receivedTask);
+                }).start();
             }else {
 
                 List<Task> taskList = new ArrayList<>();
