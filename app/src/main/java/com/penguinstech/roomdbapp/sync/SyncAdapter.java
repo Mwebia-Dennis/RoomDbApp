@@ -65,7 +65,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          */
 
         //debugger
-//        android.os.Debug.waitForDebugger();
+        android.os.Debug.waitForDebugger();
 
         contentResolver = context.getContentResolver();
         FirebaseApp.initializeApp(context);
@@ -101,18 +101,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             ContentProviderClient provider,
             SyncResult syncResult) {
 
-        //check if database is empty
-        //if empty, load data from firebase if any.
-        //if there is data in database, compare if its upto to date with server and update as necessary
-//        List<Task> allTasks = localDatabase.taskDao().getAll();
         Log.i("perfomingSync", "True");
-//        Log.i("Sync results", String.valueOf(allTasks.size()));
-//        if(allTasks.size() > 0) {
-//            backupToFirestore();
-//        }else {
-//            syncAllNotesFromFirestore();
-//        }
-
         //ensure user id exists
         if (!Util.getUserName(context).equals("")) {
             syncData(Configs.tableName);
@@ -124,6 +113,65 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     }
 
+
+    private void syncData(String tableName) {
+
+        /**
+         *
+         * retrieve the the last sync token
+         * compare with servers last sync
+         * check which data has been affected and compare which is the latest and update.
+         * update last sync
+         *
+         */
+
+        //get token from room
+        Token token = localDatabase.tokenDao().loadLastSyncToken();
+        //retrieve firebase last sync from firebase database
+
+        firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").get().addOnSuccessListener(dataSnapshot -> {
+
+            if (dataSnapshot.exists() && token != null){
+                //check if the current client was the last one to update the server
+                Token firebaseToken = dataSnapshot.getValue(Token.class);
+                Log.d("firebase device", firebaseToken.deviceId);
+                Log.d("local device", firebaseToken.deviceId);
+                Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
+                if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
+                    //update server
+                    saveDataToFirestore(tableName, false, token.lastSync);
+                }else {
+
+                    //compare both  local to and from firestore data and update
+                    compareRoomToFirestoreData(tableName, token.lastSync);
+
+                }
+
+
+
+            }else if (dataSnapshot.exists() && token == null) {
+                //local db has no data
+                //retrieve all data from firestore and  update the local db with data from firebase
+                syncAllNotesFromFirestore(tableName);
+
+            }else if (!dataSnapshot.exists() && token != null) {
+                //firestore is emmpty. update with room data.
+                saveDataToFirestore(tableName, true, "");
+
+            }else {
+
+                //if both are null then user has no data.
+                updateToken(tableName);
+            }
+
+        }).addOnFailureListener(e -> {
+
+            Log.d("firebase token", "failed");
+        });
+
+
+
+    }
 
     public void syncAllNotesFromFirestore(String tableName) {
         db.collection(Util.getUserName(context)).document(tableName).collection(tableName).get()
@@ -154,70 +202,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                     Log.d("firestore onFailure", ": True");
                 });
     }
-//
-//    public void backupToFirestore () {
-//
-//        /**
-//         * get the last inserted data in firebase by ordering by date field
-//         * get the last inserted data in local database
-//         * if both match return
-//         * else update
-//         */
-//
-//        //@var localLatestTask -> the latest item in room db
-////        List<Task> localLatestTask = localDatabase.taskDao().getLatestTask();
-////        Log.d("latestTask", localLatestTask.get(0).title);
-////        //query firebase to get latest added item
-////        db.collection(Util.getUserName(context))
-////                .orderBy("updatedAt", Query.Direction.DESCENDING)
-////                .limit(1)
-////                .get().addOnSuccessListener(queryDocumentSnapshots -> {
-////
-////            if (!queryDocumentSnapshots.isEmpty()) {
-////                //firebase results
-////                List<Task> lastTask = queryDocumentSnapshots.toObjects(Task.class);
-////                //get the item
-////                Task task = lastTask.get(0);
-//////                Log.d("last task", task.title);
-////                try {
-////
-////                    //convert the items date from string to date
-////                    Date localLatestTaskDate = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH)
-////                            .parse(localLatestTask.get(0).updatedAt);
-////                    Date firestoreLatestTaskDate = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH)
-////                            .parse(task.updatedAt);
-////
-////                    //check if room DB is ahead of firestore
-////                    if(localLatestTaskDate.after(firestoreLatestTaskDate)) {
-////                        //update firebase
-////                        //get all data that is not backed up ie date after @param firestore Last Task Date
-////                        Log.d("firestore", "not updated");
-////                        saveDataToFirestore(false, task.updatedAt);
-////
-////                    }else if(firestoreLatestTaskDate.after(localLatestTaskDate)) {
-////                        //update the local database
-//////                        saveDataToLocalDb(localLatestTaskDate.toString());
-////                        //todo: check if user has deleted task from local db
-////                    }
-////                } catch (ParseException e) {
-////                    e.printStackTrace();
-////                }
-////
-////
-////            }else {
-////                //no backed up data so update the whole firestore
-////                saveDataToFirestore(true, "");
-////                Log.d("backup data", "0");
-////            }
-////
-////        })
-////                .addOnFailureListener(e -> {
-////
-////                    Log.d("firestore: retrieving", " last item failed");
-////                });
-//
-//    }
-
 
     private void saveDataToFirestore(String tableName, boolean isAllData, String updatedAt) {
 
@@ -300,81 +284,22 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                     batchSize += PAGINATOR;
                 }
 
+                updateToken(tableName);
+
             }
         }.start();
 
 
     }
 
-    private void syncData(String tableName) {
-
-        /**
-         *
-         * retrieve the the last sync token
-         * compare with servers last sync
-         * check which data has been affected and compare which is the latest and update.
-         * update last sync
-         *
-         */
-
-        //get token from room
-        Token token = localDatabase.tokenDao().loadLastSyncToken();
-        //retrieve firebase last sync from firebase database
-
-        firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").get().addOnSuccessListener(dataSnapshot -> {
-
-            if (dataSnapshot.exists() && token != null){
-                //check if the current client was the last one to update the server
-                Token firebaseToken = dataSnapshot.getValue(Token.class);
-                Log.d("firebase device", firebaseToken.deviceId);
-                Log.d("local device", firebaseToken.deviceId);
-                Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
-                if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
-                    //update server
-                    saveDataToFirestore(tableName, false, token.lastSync);
-                    updateToken(tableName);
-                }else {
-
-                    //compare both  local and firestore data and update
-
-                    compareRoomAndFirestoreData(tableName, token.lastSync, firebaseToken.lastSync);
-                }
-
-
-
-            }else if (dataSnapshot.exists() && token == null) {
-                //local db has no data
-                //retrieve all data from firestore and  update the local db with data from firebase
-                syncAllNotesFromFirestore(tableName);
-
-            }else if (!dataSnapshot.exists() && token != null) {
-                //firestore is emmpty. update with room data.
-                saveDataToFirestore(tableName, true, "");
-                updateToken(tableName);
-
-            }else {
-
-                //if both are null then user has no data.
-                updateToken(tableName);
-            }
-
-        }).addOnFailureListener(e -> {
-
-           Log.d("firebase token", "failed");
-        });
-
-
-
-    }
-
-    private void compareRoomAndFirestoreData(String tableName, String tokenLastSync, String firebaseTokenlastSync) {
+    private void compareRoomToFirestoreData(String tableName, String tokenLastSync) {
 
         /**
          * get all data in local db that was updated after the lastSync date
          * get data in batches
          * check if there is similar data in firestore
          * if present update or delete the oldest task
-         * get all data that is in firestore and not in local and update local
+         * get data in firestore that is not in local and add to local
          */
 
         new Thread(()->{
@@ -454,28 +379,68 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     }
                 }
+
+
+
                 batchSize += PAGINATOR;
 
             }
+            compareFirestoreToRoomData(tableName,tokenLastSync);
             updateToken(Configs.tableName);
 
         }).start();
 
-
-
-
-//        db.collection(Util.getUserName(context))
-//                .whereEqualTo("updatedAt", tokenLastSync)
-//                .get().addOnSuccessListener(queryDocumentSnapshots -> {
-//
-//            if (!queryDocumentSnapshots.isEmpty()) {
-//                //firebase results
-//                List<Task> listOfFirestoreTasks = queryDocumentSnapshots.toObjects(Task.class);
-//                //get the item
-//            }
-//        });
     }
 
+    private void compareFirestoreToRoomData(String tableName, String tokenLastSync) {
+
+        /**
+             * get all data that is in firestore and not in local and update local
+             * get all data from firestore with update date greater than token last sync
+             * loop each item
+             * check if item exists in room
+            * if it doesnt add to local
+            * since @function compareRoomToFirestoreData updates both firebase and local when data exists on both, then no need to update again
+         */
+
+        new Thread(()->{
+            //getting data in small batches to avoid filling the memory with data
+            final List<Integer> batchSizes = new ArrayList<>();
+            batchSizes.add(PAGINATOR);
+            //if the results from firebase are less than 100, then it means there is no more data.
+            while (batchSizes.get(batchSizes.size()-1) < 100) {
+
+
+                db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                        .whereGreaterThan("updatedAt",tokenLastSync)
+                        .limit(PAGINATOR)
+                        .get()
+                        .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                                    if (!queryDocumentSnapshots.isEmpty()) {
+
+
+                                        List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
+                                        List<Task> newTasksFromFirestoreList = new ArrayList<>();
+                                        for (Task task : backedUpTasks) {
+                                            if(localDatabase.taskDao().loadTaskById(task.id) == null){
+                                                //get all tasks in firestore but not in local
+                                                newTasksFromFirestoreList.add(task);
+                                            }
+                                        }
+                                        //insert to database
+                                        localDatabase.taskDao().insertAll(newTasksFromFirestoreList);
+                                        //update our counter checker
+                                        batchSizes.add(backedUpTasks.size());
+                                    }
+                                });
+            }
+
+
+            updateToken(tableName);
+
+        }).start();
+    }
 
     private void updateToken(String tableName) {
 
