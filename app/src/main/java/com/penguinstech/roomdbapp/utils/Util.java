@@ -6,17 +6,15 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.penguinstech.roomdbapp.room_db.AppDatabase;
 import com.penguinstech.roomdbapp.room_db.Subscription;
 import com.penguinstech.roomdbapp.room_db.SubscriptionDao;
 import com.penguinstech.roomdbapp.room_db.Task;
 import com.penguinstech.roomdbapp.room_db.TaskDao;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class Util {
@@ -68,6 +66,15 @@ public class Util {
             }
         }.start();
     }
+
+    public static Object getDao (AppDatabase localDb, String tableName) {
+        if(tableName.equals(Configs.tableName)){
+            return localDb.taskDao();
+        }
+        return  null;
+
+    }
+
 
     public static Task convertMapToTaskObject (Map<String, Object> taskMap) {
         Gson gson = new Gson();

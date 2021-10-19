@@ -97,11 +97,11 @@ public class MainActivity extends AppCompatActivity {
                 Bundle.EMPTY,
                 (60 * 60));
 
-//        final PeriodicWorkRequest periodicWorkRequest
-//                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
-//                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-//                .build();
-//        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
+        final PeriodicWorkRequest periodicWorkRequest
+                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build();
+        WorkManager.getInstance(getApplicationContext()).enqueue(periodicWorkRequest);
 
         //register an observer to notify when room db is updated
         mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {

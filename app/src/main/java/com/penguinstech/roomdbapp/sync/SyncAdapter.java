@@ -27,6 +27,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.penguinstech.roomdbapp.AuthenticacteActivity;
 import com.penguinstech.roomdbapp.MainActivity;
 import com.penguinstech.roomdbapp.room_db.AppDatabase;
+import com.penguinstech.roomdbapp.room_db.TaskDao;
 import com.penguinstech.roomdbapp.room_db.Token;
 import com.penguinstech.roomdbapp.utils.Configs;
 import com.penguinstech.roomdbapp.room_db.Task;
@@ -65,7 +66,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          */
 
         //debugger
-        android.os.Debug.waitForDebugger();
+//        android.os.Debug.waitForDebugger();
 
         contentResolver = context.getContentResolver();
         FirebaseApp.initializeApp(context);
@@ -183,12 +184,19 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                         // get all data and add to database
                         if (!hasDataLoaded){
 
-                            //convert whole queryDocumentSnapshots to list
-                            List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
+                            //update accordingly per table
+                            if (tableName.equals(Configs.tableName)){
 
-                            Log.d("size", String.valueOf(backedUpTasks.size()));
-                            //save data to room
-                            Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
+                                //convert whole queryDocumentSnapshots to list
+                                List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
+
+                                Log.d("size", String.valueOf(backedUpTasks.size()));
+                                //save data to room
+                                Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
+                            }
+//                            else if (tableName == Configs.tableName2){
+//                                //repeat as the above if body but accessing the dao and class related to the current table
+//                            }
                             //update last sync token
                             updateToken(Configs.tableName);
                             //notify the main ui thread
@@ -209,80 +217,88 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             @Override
             public void run() {
 
-                //get tasks from room db that are not
+                //get tasks from room db
                 //get data in batches to avoid memory overload
+                //update accordingly per table
+                if (tableName.equals(Configs.tableName)){
 
-                //get count of data to be stored in firestore
+                    int totalNewData = isAllData?localDatabase.taskDao().getCount():localDatabase.taskDao().filterByDateCount(updatedAt);
+                    Log.d("totalNewData", String.valueOf(totalNewData));
+                    int batchSize = 0;
+                    while (batchSize <= totalNewData){
 
-                int totalNewData = isAllData?localDatabase.taskDao().getCount():localDatabase.taskDao().filterByDateCount(updatedAt);
-                Log.d("totalNewData", String.valueOf(totalNewData));
-                int batchSize = 0;
-                while (batchSize <= totalNewData){
 
-                    //get first 100
-                    List<Task> newTasks = isAllData?localDatabase.taskDao()
-                            .getAll():localDatabase.taskDao().filterByDate(updatedAt, PAGINATOR, batchSize);
-                    //upload items to firestore so as data matches the room data
-                    for(Task task: newTasks) {
+                        //get first 100
+                        List<Task> newTasks = isAllData?localDatabase.taskDao()
+                                .getAll():localDatabase.taskDao().filterByDate(updatedAt, PAGINATOR, batchSize);
+                        //upload items to firestore so as data matches the room data
+                        for(Task task: newTasks) {
 
-                        //if @param isAllData = true: send all data to server
-                        //else
-                        //check if doc is in server and update
-                        if(isAllData) {
-                            db.collection(Util.getUserName(context))
-                                    .document(tableName).collection(tableName)
-                                    .add(task)
-                                    .addOnSuccessListener(documentReference -> {
-                                        Log.d("backing Data", "Successful");
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Log.d("backing Data", "Failed");
-                                    });
-                        }else {
-                            db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                    .whereEqualTo("id", task.id)
-                                    .get().addOnSuccessListener(queryDocumentSnapshots -> {
+                            //if @param isAllData = true: send all data to server
+                            //else
+                            //check if doc is in server and update
+                            if(isAllData) {
+                                db.collection(Util.getUserName(context))
+                                        .document(tableName).collection(tableName)
+                                        .add(task)
+                                        .addOnSuccessListener(documentReference -> {
+                                            Log.d("backing Data", "Successful");
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.d("backing Data", "Failed");
+                                        });
+                            }else {
+                                db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                                        .whereEqualTo("id", task.id)
+                                        .get().addOnSuccessListener(queryDocumentSnapshots -> {
 
-                                        //check if the document exists
-                                        if (!queryDocumentSnapshots.isEmpty()) {
+                                            //check if the document exists
+                                            if (!queryDocumentSnapshots.isEmpty()) {
 
-                                            //update server
-                                            List<DocumentSnapshot> docsList = queryDocumentSnapshots.getDocuments();
-                                            int value = task.isDeleted;
-                                            Log.d("value", String.valueOf(value));
-                                            if (docsList.size() > 0){
-                                                if (task.isDeleted == 1) {
-                                                    //delete data from firebase
-                                                    db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                            .document(docsList.get(0).getId()).delete()
-                                                            .addOnSuccessListener(aVoid -> {
+                                                //update server
+                                                List<DocumentSnapshot> docsList = queryDocumentSnapshots.getDocuments();
+                                                int value = task.isDeleted;
+                                                Log.d("value", String.valueOf(value));
+                                                if (docsList.size() > 0){
+                                                    if (task.isDeleted == 1) {
+                                                        //delete data from firebase
+                                                        db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                                                                .document(docsList.get(0).getId()).delete()
+                                                                .addOnSuccessListener(aVoid -> {
 
-                                                                Log.d("Deleting data", "successful");
-                                                            });
-                                                }else {
-                                                    updateServer(task, tableName, docsList.get(0).getId());
+                                                                    Log.d("Deleting data", "successful");
+                                                                });
+                                                    }else {
+                                                        updateServer(task, tableName, docsList.get(0).getId());
+                                                    }
                                                 }
+
+                                            } else {
+                                                db.collection(Util.getUserName(context))
+                                                        .document(tableName).collection(tableName)
+                                                        .add(task)
+                                                        .addOnSuccessListener(documentReference -> {
+                                                            Log.d("backing Data", "Successful");
+                                                        })
+                                                        .addOnFailureListener(e -> {
+                                                            Log.d("backing Data", "Failed");
+                                                        });
                                             }
-
-                                        } else {
-                                            db.collection(Util.getUserName(context))
-                                                    .document(tableName).collection(tableName)
-                                                    .add(task)
-                                                    .addOnSuccessListener(documentReference -> {
-                                                        Log.d("backing Data", "Successful");
-                                                    })
-                                                    .addOnFailureListener(e -> {
-                                                        Log.d("backing Data", "Failed");
-                                                    });
                                         }
-                                    }
-                            );
+                                );
+                            }
+
+
                         }
-
-
+                        batchSize += PAGINATOR;
                     }
-                    batchSize += PAGINATOR;
+
                 }
+//                else if(tableName.equals("calendars") {
+//
+//                    uploadCalendars(tableName,updatedAt,isAllData);
+//                }
+
 
                 updateToken(tableName);
 
@@ -407,12 +423,15 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             //getting data in small batches to avoid filling the memory with data
             final List<Integer> batchSizes = new ArrayList<>();
             batchSizes.add(PAGINATOR);
+            final List<String> lastSyncDates = new ArrayList<>();
+            lastSyncDates.add(tokenLastSync);
             //if the results from firebase are less than 100, then it means there is no more data.
-            while (batchSizes.get(batchSizes.size()-1) < 100) {
+            boolean hasData = true;
+            while (hasData) {
 
 
                 db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                        .whereGreaterThan("updatedAt",tokenLastSync)
+                        .whereGreaterThan("updatedAt",lastSyncDates.get(lastSyncDates.size()-1))
                         .limit(PAGINATOR)
                         .get()
                         .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -429,11 +448,16 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                                             }
                                         }
                                         //insert to database
-                                        localDatabase.taskDao().insertAll(newTasksFromFirestoreList);
+                                        if(newTasksFromFirestoreList.size() > 0)localDatabase.taskDao().insertAll(newTasksFromFirestoreList);
+                                        //update last sync for counter
+                                        lastSyncDates.add(backedUpTasks.get(backedUpTasks.size()-1).updatedAt);
                                         //update our counter checker
-                                        batchSizes.add(backedUpTasks.size());
+                                        batchSizes.add(newTasksFromFirestoreList.size());
                                     }
                                 });
+
+
+                hasData = (batchSizes.get(batchSizes.size() - 1) > 0);
             }
 
 
@@ -477,6 +501,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("firebase", "updated succesfully");
         });
     }
+
 
 
 }
