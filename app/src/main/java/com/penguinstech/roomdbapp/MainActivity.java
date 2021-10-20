@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    FirebaseFirestore db;
-    AppDatabase localDatabase;
+        FirebaseFirestore db;
+        AppDatabase localDatabase;
 //    Map<String, String> taskInfo = new HashMap<>();
     TaskDao taskDao;
     NotesAdapter adapter;
@@ -71,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
         }else if (item.getItemId() == R.id.subscribe) {
             startActivity(new Intent(MainActivity.this, SubscribeActivity.class));
+        }else if(item.getItemId() == R.id.uploadFiles) {
+            startActivity(new Intent(MainActivity.this, ImageActivity.class));
         }
         return super.onOptionsItemSelected(item);
     }

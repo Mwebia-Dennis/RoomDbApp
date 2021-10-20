@@ -27,4 +27,8 @@
     <string name="log_in">Log in</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
+    <string name="add_file">Add File</string>
+    <string name="new_file">new files</string>
+    <string name="upload_files">Upload Files</string>
+    <string name="image">saved images</string>
 </resources>

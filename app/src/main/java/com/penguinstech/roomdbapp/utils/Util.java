@@ -118,14 +118,6 @@ public class Util {
         return gson.fromJson(jsonElement, Task.class);
     }
 
-    public static boolean isNumeric(String str) {
-        try {
-            Double.parseDouble(str);
-            return true;
-        } catch(NumberFormatException e){
-            return false;
-        }
-    }
 
 
 
