@@ -66,7 +66,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          */
 
         //debugger
-        android.os.Debug.waitForDebugger();
+//        android.os.Debug.waitForDebugger();
 
         contentResolver = context.getContentResolver();
         FirebaseApp.initializeApp(context);
