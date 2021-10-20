@@ -283,44 +283,41 @@ public class TaskController implements  MainController{
 
         new Thread(()->{
             //getting data in small batches to avoid filling the memory with data
-            final List<Integer> batchSizes = new ArrayList<>();
-            batchSizes.add(PAGINATOR);
-            final List<String> lastSyncDates = new ArrayList<>();
-            lastSyncDates.add(tokenLastSync);
-            //if the results from firebase are less than 100, then it means there is no more data.
-            boolean hasData = true;
-            while (hasData) {
+
+            db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                    .whereGreaterThan("updatedAt",tokenLastSync)
+                    .limit(PAGINATOR)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                        if (!queryDocumentSnapshots.isEmpty()) {
 
 
-                db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                        .whereGreaterThan("updatedAt",lastSyncDates.get(lastSyncDates.size()-1))
-                        .limit(PAGINATOR)
-                        .get()
-                        .addOnSuccessListener(queryDocumentSnapshots -> {
+                            new Thread(()->{
 
-                            if (!queryDocumentSnapshots.isEmpty()) {
-
-
-                                List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
+                                List<DocumentSnapshot> documentSnapshots = queryDocumentSnapshots.getDocuments();
                                 List<Task> newTasksFromFirestoreList = new ArrayList<>();
-                                for (Task task : backedUpTasks) {
-                                    if(localDatabase.taskDao().loadTaskById(task.id) == null){
+                                for (DocumentSnapshot doc : documentSnapshots) {
+                                    //convert map to  task object
+                                    Task task = Util.convertMapToTaskObject(doc.getData());
+                                    if(localDatabase.taskDao().exists(task.id) == 0){
                                         //get all tasks in firestore but not in local
                                         newTasksFromFirestoreList.add(task);
+                                    }else {
+                                        Log.d("data", "present");
                                     }
                                 }
                                 //insert to database
-                                if(newTasksFromFirestoreList.size() > 0)localDatabase.taskDao().insertAll(newTasksFromFirestoreList);
-                                //update last sync for counter
-                                lastSyncDates.add(backedUpTasks.get(backedUpTasks.size()-1).updatedAt);
-                                //update our counter checker
-                                batchSizes.add(newTasksFromFirestoreList.size());
-                            }
-                        });
+                                localDatabase.taskDao().insertAll(newTasksFromFirestoreList);
+                                //get next batch
+                                if(documentSnapshots.size() >= PAGINATOR) {
+                                    Task lastTask = Util.convertMapToTaskObject(documentSnapshots.get(documentSnapshots.size()-1).getData());
+                                    compareFirestoreToRoomData(lastTask.updatedAt);
+                                }
+                            }).start();
 
-
-                hasData = (batchSizes.get(batchSizes.size() - 1) > 0);
-            }
+                        }
+                    });
 
 
             Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
