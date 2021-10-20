@@ -41,6 +41,10 @@ public interface TaskDao {
     @Query("SELECT count(id) FROM "+Configs.tableName)
     int getCount();
 
+
+    @Query("SELECT count(id) FROM "+Configs.tableName+" WHERE id = :taskId")
+    int exists(int taskId);
+
     @Query("SELECT * FROM "+Configs.tableName+" WHERE id = :taskId")
     Task loadTaskById(int taskId);
 

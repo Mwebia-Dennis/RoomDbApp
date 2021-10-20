@@ -145,7 +145,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                 Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
                 if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
                     //update server
-                    if (tableName.equals(Configs.tableName)) {
+                        if (tableName.equals(Configs.tableName)) {
                         new TaskController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
                     }
                 }else {
