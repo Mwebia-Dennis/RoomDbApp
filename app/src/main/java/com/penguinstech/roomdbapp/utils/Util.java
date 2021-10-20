@@ -1,9 +1,15 @@
 package com.penguinstech.roomdbapp.utils;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.provider.Settings;
 import android.util.Log;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.penguinstech.roomdbapp.room_db.AppDatabase;
@@ -11,10 +17,14 @@ import com.penguinstech.roomdbapp.room_db.Subscription;
 import com.penguinstech.roomdbapp.room_db.SubscriptionDao;
 import com.penguinstech.roomdbapp.room_db.Task;
 import com.penguinstech.roomdbapp.room_db.TaskDao;
+import com.penguinstech.roomdbapp.room_db.Token;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class Util {
@@ -39,6 +49,32 @@ public class Util {
                 Log.d("Local db ", "all objects added to db");
             }
         }.start();
+    }
+
+
+
+    public static void updateToken(Context context, ContentResolver contentResolver, AppDatabase localDatabase, String tableName) {
+
+        DatabaseReference firebaseDatabase;//firebase realtime db
+        firebaseDatabase = FirebaseDatabase.getInstance().getReference();
+        //update both local and firestore last sync date
+        String deviceId= Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
+        Token newToken = new Token(deviceId, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+
+        firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").setValue(newToken).addOnSuccessListener(aVoid -> {
+
+            Log.d("firebasse token", "updated successfully");
+        });
+        new Thread() {
+            @Override
+            public void run() {
+
+                List<Token> listOfTokens = new ArrayList<>();
+                listOfTokens.add(newToken);
+                localDatabase.tokenDao().insertAll(listOfTokens);
+            }
+        }.start();
+
     }
 
     public static void saveSubscriptionToRoomDb(SubscriptionDao subscriptionDao, Subscription subscription) {
