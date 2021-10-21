@@ -3,6 +3,9 @@ package com.penguinstech.roomdbapp.utils;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -59,7 +62,7 @@ public class Util {
         firebaseDatabase = FirebaseDatabase.getInstance().getReference();
         //update both local and firestore last sync date
         String deviceId= Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
-        Token newToken = new Token(deviceId, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+        Token newToken = new Token(deviceId, tableName, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
 
         firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").setValue(newToken).addOnSuccessListener(aVoid -> {
 
@@ -103,12 +106,19 @@ public class Util {
         }.start();
     }
 
-    public static Object getDao (AppDatabase localDb, String tableName) {
-        if(tableName.equals(Configs.tableName)){
-            return localDb.taskDao();
-        }
-        return  null;
 
+    public static String getPath(Context context, Uri uri ) {
+        String result = null;
+        String[] proj = { MediaStore.Images.Media.DATA };
+        Cursor cursor = context.getContentResolver( ).query( uri, proj, null, null, null );
+        if(cursor != null){
+            if ( cursor.moveToFirst( ) ) {
+                int column_index = cursor.getColumnIndexOrThrow( proj[0] );
+                result = cursor.getString( column_index );
+            }
+            cursor.close( );
+        }
+        return result;
     }
 
 

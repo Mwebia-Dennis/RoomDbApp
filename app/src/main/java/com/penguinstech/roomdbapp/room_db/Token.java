@@ -16,6 +16,10 @@ public class Token {
     @ColumnInfo(name = "device_id")
     public String deviceId;
 
+
+    @ColumnInfo(name = "table_name")
+    public String tableName;
+
     @ColumnInfo(name = "last_sync")
     public String lastSync;
 
@@ -24,8 +28,9 @@ public class Token {
         //empty constructor very important
     }
 
-    public Token(String deviceId, String lastSync) {
+    public Token(String deviceId, String tableName, String lastSync) {
         this.deviceId = deviceId;
+        this.tableName = tableName;
         this.lastSync = lastSync;
     }
 }

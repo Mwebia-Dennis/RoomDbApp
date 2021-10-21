@@ -17,8 +17,8 @@ public interface TokenDao {
     @Query("SELECT * FROM "+ Configs.tokensTableName+" WHERE id = :id")
     Token loadTokenById(int id);
 
-    @Query("SELECT * FROM "+ Configs.tokensTableName+" ORDER BY last_sync DESC LIMIT 1")
-    Token loadLastSyncToken();
+    @Query("SELECT * FROM "+ Configs.tokensTableName+" WHERE table_name = :tableName  ORDER BY last_sync DESC LIMIT 1")
+    Token loadLastSyncToken(String tableName);
 
     @Insert
     void insertAll(List<Token> tokenList);

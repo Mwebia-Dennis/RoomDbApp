@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,8 +62,10 @@ public class FileAdapter extends BaseAdapter {
 
         Files files = listOfFiles.get(position);
 
-        if(files.firestorePath.equals("")){
-            String filePath = getPath(Uri.parse(files.localPath));
+        String deviceId= Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        Log.d("imagePath", files.firestorePath);
+        if(files.firestorePath.equals("") && files.deviceId.equals(deviceId)){
+            String filePath = Util.getPath(context, Uri.parse(files.localPath));
             if(filePath != null) {
                 Glide
                         .with(context)
@@ -74,27 +77,13 @@ public class FileAdapter extends BaseAdapter {
         }else {
             Glide
                     .with(context)
-                    .load(files.firestorePath)
+                    .load(Uri.parse(files.firestorePath))
                     .centerCrop()
 //                            .placeholder(R.drawable.loading_spinner)
                     .into(holder.imageView);
         }
 
         return convertView;
-    }
-
-    public String getPath( Uri uri ) {
-        String result = null;
-        String[] proj = { MediaStore.Images.Media.DATA };
-        Cursor cursor = context.getContentResolver( ).query( uri, proj, null, null, null );
-        if(cursor != null){
-            if ( cursor.moveToFirst( ) ) {
-                int column_index = cursor.getColumnIndexOrThrow( proj[0] );
-                result = cursor.getString( column_index );
-            }
-            cursor.close( );
-        }
-        return result;
     }
 
     public static class ImageHolder {

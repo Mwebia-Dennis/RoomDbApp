@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">RoomDbApp</string>
+    <string name="authority">com.penguinstech.roomdbapp.provider</string>
+    <string name="account_type">penguinstech.com</string>
+
+
     <string name="click_me">Click Me</string>
     <string name="get_data">get data</string>
     <string name="add_task">add task</string>

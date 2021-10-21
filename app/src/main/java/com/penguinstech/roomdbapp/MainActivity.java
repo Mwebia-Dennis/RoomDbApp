@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 Configs.AUTHORITY,
                 Bundle.EMPTY,
                 (60 * 60));
-
+//
         final PeriodicWorkRequest periodicWorkRequest
                 = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
                 .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
