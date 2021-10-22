@@ -9,6 +9,7 @@ public interface Configs {
     String subscriptionTableName = "subscriptions";
     String syncTableName = "sync_info";
     String tokensTableName = "tokens";
+    String filesTableName = "files";
     String AUTHORITY = "com.penguinstech.roomdbapp.provider";
     String ACCOUNT_TYPE = "penguinstech.com";
     String ACCOUNT = "com.penguinstech.roomdbapp";

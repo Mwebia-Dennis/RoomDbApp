@@ -1,6 +1,9 @@
 package com.penguinstech.roomdbapp.controller;
 
 import com.penguinstech.roomdbapp.room_db.Task;
+import com.penguinstech.roomdbapp.room_db.TaskDao;
+
+import java.util.List;
 
 public interface MainController {
 

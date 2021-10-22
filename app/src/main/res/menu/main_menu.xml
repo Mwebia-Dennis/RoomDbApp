@@ -11,6 +11,12 @@
 
     <item
         android:icon="@drawable/ic_baseline_ads_click_24"
+        android:title="@string/upload_files"
+        android:id="@+id/uploadFiles"
+        app:showAsAction="never"
+        />
+    <item
+        android:icon="@drawable/ic_baseline_ads_click_24"
         android:title="@string/subscribe"
         android:id="@+id/subscribe"
         app:showAsAction="never"

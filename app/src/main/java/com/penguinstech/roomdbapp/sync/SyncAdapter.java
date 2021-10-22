@@ -26,6 +26,7 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.penguinstech.roomdbapp.AuthenticacteActivity;
 import com.penguinstech.roomdbapp.MainActivity;
+import com.penguinstech.roomdbapp.controller.FileController;
 import com.penguinstech.roomdbapp.controller.TaskController;
 import com.penguinstech.roomdbapp.room_db.AppDatabase;
 import com.penguinstech.roomdbapp.room_db.TaskDao;
@@ -66,7 +67,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          */
 
         //debugger
-//        android.os.Debug.waitForDebugger();
+        android.os.Debug.waitForDebugger();
 
         contentResolver = context.getContentResolver();
         FirebaseApp.initializeApp(context);
@@ -106,7 +107,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         //ensure user id exists
         if (!Util.getUserName(context).equals("")) {
 
-            String[] listOfTables = new String[] {Configs.tableName};
+            String[] listOfTables = new String[] {Configs.tableName, Configs.filesTableName};
             for (String tableName: listOfTables) {
 
                 syncData(tableName);
@@ -131,52 +132,64 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          *
          */
 
-        //get token from room
-        Token token = localDatabase.tokenDao().loadLastSyncToken();
         //retrieve firebase last sync from firebase database
 
         firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").get().addOnSuccessListener(dataSnapshot -> {
 
-            if (dataSnapshot.exists() && token != null){
-                //check if the current client was the last one to update the server
-                Token firebaseToken = dataSnapshot.getValue(Token.class);
-                Log.d("firebase device", firebaseToken.deviceId);
-                Log.d("local device", firebaseToken.deviceId);
-                Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
-                if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
-                    //update server
+            new Thread(()->{
+
+                //get token from room
+                Token token = localDatabase.tokenDao().loadLastSyncToken(tableName);
+                if (dataSnapshot.exists() && token != null){
+                    //check if the current client was the last one to update the server
+                    Token firebaseToken = dataSnapshot.getValue(Token.class);
+                    Log.d("firebase device", firebaseToken.deviceId);
+                    Log.d("local device", firebaseToken.deviceId);
+                    Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
+                    if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
+                        //update server
                         if (tableName.equals(Configs.tableName)) {
-                        new TaskController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
+                            new TaskController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
+                        }else if (tableName.equals(Configs.filesTableName)) {
+                            new FileController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
+                        }
+                    }else {
+
+                        //compare both  local to and from firestore data and update
+                        if (tableName.equals(Configs.tableName)) {
+                            new TaskController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
+                        }else if (tableName.equals(Configs.filesTableName)) {
+                            new FileController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
+                        }
+
                     }
+
+
+
+                }else if (dataSnapshot.exists() && token == null) {
+                    //local db has no data
+                    //retrieve all data from firestore and  update the local db with data from firebase
+                    if (tableName.equals(Configs.tableName)) {
+                        new TaskController(context, localDatabase).syncAllDataFromFirestore();
+                    }else if (tableName.equals(Configs.filesTableName)) {
+                        new FileController(context, localDatabase).syncAllDataFromFirestore();
+                    }
+
+                }else if (!dataSnapshot.exists() && token != null) {
+                    //firestore is emmpty. update with room data.
+                    if (tableName.equals(Configs.tableName)) {
+                        new TaskController(context, localDatabase).saveDataToFirestore(true, "");
+                    }else if (tableName.equals(Configs.filesTableName)) {
+                        new FileController(context, localDatabase).saveDataToFirestore(true, "");
+                    }
+
                 }else {
 
-                    //compare both  local to and from firestore data and update
-                    if (tableName.equals(Configs.tableName)) {
-                        new TaskController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
-                    }
-
+                    //if both are null then user has no data.
+                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
+                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
                 }
-
-
-
-            }else if (dataSnapshot.exists() && token == null) {
-                //local db has no data
-                //retrieve all data from firestore and  update the local db with data from firebase
-                if (tableName.equals(Configs.tableName)) {
-                    new TaskController(context, localDatabase).syncAllDataFromFirestore();
-                }
-
-            }else if (!dataSnapshot.exists() && token != null) {
-                //firestore is emmpty. update with room data.
-                if (tableName.equals(Configs.tableName)) {
-                    new TaskController(context, localDatabase).saveDataToFirestore(true, "");
-                }
-
-            }else {
-
-                //if both are null then user has no data.
-                Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
-            }
+            }).start();
 
         }).addOnFailureListener(e -> {
 
