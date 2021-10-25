@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.penguinstech.roomdbapp">
+    package="com.penguinstech.cloud_syncer">
 
     <uses-permission
         android:name="android.permission.AUTHENTICATE_ACCOUNTS"
@@ -14,6 +14,8 @@
     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="com.android.vending.BILLING" />
+
 
     <application
         android:allowBackup="true"
@@ -22,11 +24,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RoomDbApp">
-        <activity android:name=".ImageActivity" />
-        <activity android:name=".AuthenticacteActivity" />
-        <activity android:name=".SubscribeActivity" />
-        <activity android:name=".AddTaskActivity" />
-        <activity android:name=".MainActivity">
+        <activity android:name="com.penguinstech.cloud_syncer.ImageActivity" />
+        <activity android:name="com.penguinstech.cloud_syncer.AuthenticacteActivity" />
+        <activity android:name="com.penguinstech.cloud_syncer.SubscribeActivity" />
+        <activity android:name="com.penguinstech.cloud_syncer.AddTaskActivity" />
+        <activity android:name="com.penguinstech.cloud_syncer.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -35,7 +37,7 @@
         </activity>
 
         <service
-            android:name=".sync.AuthenticatorService"
+            android:name="com.penguinstech.cloud_syncer.sync.AuthenticatorService"
             android:exported="false"
             android:process=":auth">
             <intent-filter>
@@ -47,7 +49,7 @@
                 android:resource="@xml/authenticator" />
         </service>
         <service
-            android:name=".sync.SyncService"
+            android:name="com.penguinstech.cloud_syncer.sync.SyncService"
             android:exported="false"
             android:process=":sync">
             <intent-filter>
@@ -60,8 +62,8 @@
         </service>
 
         <provider
-            android:name=".sync.StubProvider"
-            android:authorities="com.penguinstech.roomdbapp.provider"
+            android:name="com.penguinstech.cloud_syncer.sync.StubProvider"
+            android:authorities="com.penguinstech.cloud_syncer.provider"
             android:exported="false"
             android:label="app provider"
             android:syncable="true" />
