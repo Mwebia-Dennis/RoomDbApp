@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.penguinstech.cloud_syncer">
+    package="com.penguinstech.cloudy">
 
     <uses-permission
         android:name="android.permission.AUTHENTICATE_ACCOUNTS"
@@ -24,11 +24,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RoomDbApp">
-        <activity android:name="com.penguinstech.cloud_syncer.ImageActivity" />
-        <activity android:name="com.penguinstech.cloud_syncer.AuthenticacteActivity" />
-        <activity android:name="com.penguinstech.cloud_syncer.SubscribeActivity" />
-        <activity android:name="com.penguinstech.cloud_syncer.AddTaskActivity" />
-        <activity android:name="com.penguinstech.cloud_syncer.MainActivity">
+        <activity android:name="com.penguinstech.cloudy.ImageActivity" />
+        <activity android:name="com.penguinstech.cloudy.AuthenticacteActivity" />
+        <activity android:name="com.penguinstech.cloudy.SubscribeActivity" />
+        <activity android:name="com.penguinstech.cloudy.AddTaskActivity" />
+        <activity android:name="com.penguinstech.cloudy.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -37,7 +37,7 @@
         </activity>
 
         <service
-            android:name="com.penguinstech.cloud_syncer.sync.AuthenticatorService"
+            android:name="com.penguinstech.cloudy.sync.AuthenticatorService"
             android:exported="false"
             android:process=":auth">
             <intent-filter>
@@ -49,7 +49,7 @@
                 android:resource="@xml/authenticator" />
         </service>
         <service
-            android:name="com.penguinstech.cloud_syncer.sync.SyncService"
+            android:name="com.penguinstech.cloudy.sync.SyncService"
             android:exported="false"
             android:process=":sync">
             <intent-filter>
@@ -62,8 +62,8 @@
         </service>
 
         <provider
-            android:name="com.penguinstech.cloud_syncer.sync.StubProvider"
-            android:authorities="com.penguinstech.cloud_syncer.provider"
+            android:name="com.penguinstech.cloudy.sync.StubProvider"
+            android:authorities="com.penguinstech.cloudy.provider"
             android:exported="false"
             android:label="app provider"
             android:syncable="true" />
