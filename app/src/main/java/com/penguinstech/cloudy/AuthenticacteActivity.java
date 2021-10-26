@@ -65,6 +65,13 @@ public class AuthenticacteActivity extends AppCompatActivity {
 
                                                 }).start();
                                     });
+                                }else {
+                                    Subscription subscription = dataSnapshot.getValue(Subscription.class);
+                                    new Thread(()->{
+                                        List<Subscription> list = new ArrayList<>();
+                                        list.add(subscription);
+                                        localDatabase.subscriptionDao().insertAll(list);
+                                    }).start();
                                 }
                     });
                 }).start();

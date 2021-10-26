@@ -33,7 +33,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     DatabaseReference firebaseDatabase;//firebase realtime db
     AppDatabase localDatabase;//rooom db
     Context context;
-    long limiter = 10;
+    long limiter = 8;
     final int PAGINATOR  = 100;
 
     /**

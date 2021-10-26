@@ -107,7 +107,6 @@ public class SubscribeActivity extends AppCompatActivity {
             public void onBillingSetupFinished(BillingResult billingResult) {
                 if (billingResult.getResponseCode() ==  BillingClient.BillingResponseCode.OK) {
                     // The BillingClient is ready. You can query purchases here.
-                    getSubscriptionsList();
                     getUserSubscription(SubscribeActivity.this);
                 }
             }
@@ -187,7 +186,8 @@ public class SubscribeActivity extends AppCompatActivity {
                             userName,
                             lastPurchase.getOrderId(),
                             lastPurchase.getPackageName(),
-                            Util.getSubscriptionId(context),
+//                            String.valueOf(AppSubscriptionPlans.valueOf(lastPurchase.getSkus().get(0))),
+                            String.valueOf(Util.convertMbToBytes(Long.parseLong(lastPurchase.getSkus().get(0)))),
                             "0",
                             String.valueOf(lastPurchase.getPurchaseState()),
                             String.valueOf(lastPurchase.getPurchaseTime()),
@@ -198,7 +198,6 @@ public class SubscribeActivity extends AppCompatActivity {
                             .child("subscription_details").get().addOnSuccessListener(dataSnapshot -> {
 
                         if (dataSnapshot.exists()){
-
                             Subscription subscription = dataSnapshot.getValue(Subscription.class);
                             if (!subscription.orderId.equals(lastPurchase.getOrderId())) {
                                 //update firebase
@@ -220,23 +219,32 @@ public class SubscribeActivity extends AppCompatActivity {
                     new Thread(()->{
                         //check if subscription exists in db
                         Subscription sub = localDatabase.subscriptionDao().getLastSubscription();
-                        if(Long.parseLong(sub.totalSize) != AppSubscriptionPlans.FREE.getValue()) {
-                            //if user had no free subscription, then it means subscription is expired
-                            //so update subscription
-                            Subscription subscription = new Subscription(
-                                    userName,
-                                    "",
-                                    "FREE",
-                                    String.valueOf(AppSubscriptionPlans.FREE.getValue()),
-                                    sub.coveredSize,
-                                    "",
-                                    "",
-                                    "",
-                                    new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
-                            updateDb(subscription);
+                        if (sub != null) {
 
+                            if(Long.parseLong(sub.totalSize) != AppSubscriptionPlans.FREE.getValue()) {
+                                //if user had no free subscription, then it means subscription is expired
+                                //so update subscription
+                                Subscription subscription = new Subscription(
+                                        userName,
+                                        "",
+                                        "FREE",
+                                        String.valueOf(AppSubscriptionPlans.FREE.getValue()),
+                                        sub.coveredSize,
+                                        "",
+                                        "",
+                                        "",
+                                        new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+                                updateDb(subscription);
+
+                            }else {
+
+                                getSubscriptionsList();
+                            }
+
+                        }else {
+
+                            getSubscriptionsList();
                         }
-
                     }).start();
 
 
