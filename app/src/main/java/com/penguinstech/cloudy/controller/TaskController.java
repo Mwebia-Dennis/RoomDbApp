@@ -59,14 +59,14 @@ public class  TaskController implements  MainController{
                                 Log.d("size", String.valueOf(backedUpTasks.size()));
                                 //save data to room
                                 Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
-                                //update last sync token
-                                Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
-                                //notify the main ui thread
-                                context.getContentResolver().notifyChange(Configs.URI_TASK, null, false);
                             }
                             hasDataLoaded = true;
                         }
                     }
+                    //update last sync token
+                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
+                    //notify the main ui thread
+                    context.getContentResolver().notifyChange(Configs.URI_TASK, null, false);
                 })
                 .addOnFailureListener(e -> {
 
