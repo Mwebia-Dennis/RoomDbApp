@@ -8,10 +8,10 @@ android {
     buildToolsVersion "30.0.2"
 
     defaultConfig {
-        applicationId "com.penguinstech.cloud_syncer"
+        applicationId "com.penguinstech.cloudy"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 6
+        versionCode 8
         versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
