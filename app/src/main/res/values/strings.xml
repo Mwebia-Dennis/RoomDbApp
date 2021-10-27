@@ -37,4 +37,5 @@
     <string name="image">saved images</string>
     <string name="sync">Sync</string>
     <string name="_1000">$1000</string>
+    <string name="manage_subscriptions">Manage Subscriptions</string>
 </resources>

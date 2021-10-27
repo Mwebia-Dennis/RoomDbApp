@@ -2,6 +2,7 @@ package com.penguinstech.cloudy.utils;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
@@ -51,17 +52,6 @@ public class Util {
         }.start();
     }
 
-    public static void setSubscriptionId(Context context, String sub_id) {
-        SharedPreferences.Editor editor = context.getSharedPreferences("sub_id", Context.MODE_PRIVATE).edit();
-        editor.putString("sub_id", sub_id);
-        editor.apply();
-    }
-
-    public static String getSubscriptionId(Context context){
-        return context.getSharedPreferences("sub_id", Context.MODE_PRIVATE).getString("sub_id", "");
-    }
-
-
 
 
     public static void updateToken(Context context, ContentResolver contentResolver, AppDatabase localDatabase, String tableName) {
@@ -86,6 +76,48 @@ public class Util {
             }
         }.start();
 
+    }
+
+    public static  void setNewSubscription(AppDatabase localDatabase, String userName){
+
+        new Thread(()->{
+
+            DatabaseReference firebaseDatabase = FirebaseDatabase.getInstance().getReference();
+            DatabaseReference ref = firebaseDatabase.child(userName).child(Configs.subscriptionTableName)
+                    .child("subscription_details");
+            ref.get().addOnSuccessListener(dataSnapshot -> {
+
+                if (!dataSnapshot.exists()){
+                    Subscription subscription = new Subscription(
+                            userName,
+                            "",
+                            AppSubscriptionPlans.FREE.getKey(),
+                            "FREE",
+                            String.valueOf(AppSubscriptionPlans.FREE.getValue()),
+                            "0",
+                            "",
+                            "",
+                            "",
+                            new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+                    ref.setValue(subscription).addOnSuccessListener(aVoid -> {
+                        new Thread(()->{
+
+                            List<Subscription> list = new ArrayList<>();
+                            list.add(subscription);
+                            localDatabase.subscriptionDao().insertAll(list);
+
+                        }).start();
+                    });
+                }else {
+                    Subscription subscription = dataSnapshot.getValue(Subscription.class);
+                    new Thread(()->{
+                        List<Subscription> list = new ArrayList<>();
+                        list.add(subscription);
+                        localDatabase.subscriptionDao().insertAll(list);
+                    }).start();
+                }
+            });
+        }).start();
     }
 
     public static void saveSubscriptionToRoomDb(SubscriptionDao subscriptionDao, Subscription subscription) {
@@ -127,6 +159,14 @@ public class Util {
             cursor.close( );
         }
         return result;
+    }
+
+    public static void redirectToLink(Context context, String url) {
+        Intent viewIntent =
+                new Intent("android.intent.action.VIEW",
+                        Uri.parse(url)
+                );
+        context.startActivity(viewIntent);
     }
 
 

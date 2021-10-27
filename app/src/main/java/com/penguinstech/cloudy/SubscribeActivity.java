@@ -7,8 +7,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,6 +50,7 @@ public class SubscribeActivity extends AppCompatActivity {
     public static String SELECTED_SUBSCRIPTION_ID;
     String userName;
     DatabaseReference firebaseDatabase;
+    Purchase currentPurchase = null;
 //    BillingProcessor bp;
 
     private final PurchasesUpdatedListener purchasesUpdatedListener = (billingResult, purchases) -> {
@@ -78,6 +83,37 @@ public class SubscribeActivity extends AppCompatActivity {
     }
 
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.subscriptions_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.manage_subscriptions) {
+
+            Toast.makeText(SubscribeActivity.this, "Loading, please wait...", Toast.LENGTH_SHORT).show();
+            //get user subscription info
+            if (currentPurchase != null){
+                //get if user has active subscription
+                //if true redirect to the subscription page
+                //else redirect to  subscriptions history page
+                if (currentPurchase.isAutoRenewing()){
+                    Util.redirectToLink(SubscribeActivity.this, "https://play.google.com/store/account/subscriptions?sku="+
+                            currentPurchase.getSkus().get(0)+"&package="+Configs.APP_PACKAGE);
+                }else {
+                    Util.redirectToLink(SubscribeActivity.this, "https://play.google.com/store/account/subscriptions");
+                }
+            }else {
+                Toast.makeText(SubscribeActivity.this, "You have 0 subscriptions ", Toast.LENGTH_SHORT).show();
+            }
+
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+
     private void init() {
         userName = Util.getUserName(SubscribeActivity.this);
         localDatabase = Room.databaseBuilder(getApplicationContext(),
@@ -88,8 +124,8 @@ public class SubscribeActivity extends AppCompatActivity {
                 .enablePendingPurchases()
                 .build();
         listOfSubscriptions = new ArrayList<>();
-        adapter = new SubscrtiptionsAdapter(SubscribeActivity.this, listOfSubscriptions, billingClient);
         RecyclerView recyclerView = findViewById(R.id.subscriptionRV);
+        adapter = new SubscrtiptionsAdapter(SubscribeActivity.this, listOfSubscriptions, billingClient);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         recyclerView.setAdapter(adapter);
         //start billing connection
@@ -107,7 +143,7 @@ public class SubscribeActivity extends AppCompatActivity {
             public void onBillingSetupFinished(BillingResult billingResult) {
                 if (billingResult.getResponseCode() ==  BillingClient.BillingResponseCode.OK) {
                     // The BillingClient is ready. You can query purchases here.
-                    getUserSubscription(SubscribeActivity.this);
+                    getUserSubscription();
                 }
             }
             @Override
@@ -144,16 +180,43 @@ public class SubscribeActivity extends AppCompatActivity {
         productIds.add("1");
         productIds.add("2");
         productIds.add("3");
+
         SkuDetailsParams.Builder params = SkuDetailsParams.newBuilder();
         params.setSkusList(productIds).setType(BillingClient.SkuType.SUBS);
         billingClient.querySkuDetailsAsync(params.build(),
                 (billingResult, list) -> {
+                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                        new Thread(()->{
+                            Log.d("list", String.valueOf(list.size()));
+                            if(list.size() > 0)Log.d("list", list.get(0).getTitle());
+                            Subscription subscription = localDatabase.subscriptionDao().getLastSubscription();
+                            try {
+                                runOnUiThread(() -> {
 
-                    Log.d("list", String.valueOf(list.size()));
-                    if(list.size() > 0)Log.d("list", list.get(0).getTitle());
-                    listOfSubscriptions.clear();
-                    listOfSubscriptions.addAll(list);
-                    adapter.notifyDataSetChanged();
+                                    if(subscription == null){
+                                        adapter.setPurchaseToken("");
+                                        adapter.setSubscriptionStoreId("");
+                                    }else {
+                                        adapter.setPurchaseToken(subscription.purchaseToken);
+                                        adapter.setSubscriptionStoreId(subscription.subscriptionStoreId);
+                                    }
+
+                                    listOfSubscriptions.clear();
+                                    listOfSubscriptions.addAll(list);
+                                    adapter.notifyDataSetChanged();
+                                });
+                                Thread.sleep(300);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+                        }).start();
+                    }else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.ERROR){
+                        //HANDLE ERROR
+
+                        Log.d("billing error", billingResult.getDebugMessage());
+                        Toast.makeText(SubscribeActivity.this, "Something went wrong", Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
@@ -167,24 +230,27 @@ public class SubscribeActivity extends AppCompatActivity {
                                 .build();
                 billingClient.acknowledgePurchase(acknowledgePurchaseParams, billingResult -> {
 
-                    Toast.makeText(SubscribeActivity.this, "Subscription has been acknowledged", Toast.LENGTH_SHORT).show();
+                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                        getUserSubscription();
+                        Toast.makeText(SubscribeActivity.this, "Subscription has been acknowledged", Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
         }
     }
 
-    private void getUserSubscription(Context context) {
+    private void getUserSubscription() {
         billingClient.queryPurchasesAsync(BillingClient.SkuType.SUBS, (billingResult, list) -> {
 
             if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                 //check if the current subscription is present in database.
-
-
                 if(list.size() > 0){
                     Purchase lastPurchase = list.get(list.size() - 1);
+                    currentPurchase= lastPurchase;
                     final Subscription newSubscription = new Subscription(
                             userName,
                             lastPurchase.getOrderId(),
+                            lastPurchase.getSkus().get(0),
                             lastPurchase.getPackageName(),
 //                            String.valueOf(AppSubscriptionPlans.valueOf(lastPurchase.getSkus().get(0))),
                             String.valueOf(Util.convertMbToBytes(Long.parseLong(lastPurchase.getSkus().get(0)))),
@@ -204,12 +270,12 @@ public class SubscribeActivity extends AppCompatActivity {
                                 //add the previous covered space to our new subscription
                                 newSubscription.coveredSize = subscription.coveredSize;
                                 updateDb(newSubscription);
-
                             }
 
                         }else{
                             updateDb(newSubscription);
                         }
+                        getSubscriptionsList();
                     });
 
                 }else {
@@ -221,24 +287,27 @@ public class SubscribeActivity extends AppCompatActivity {
                         Subscription sub = localDatabase.subscriptionDao().getLastSubscription();
                         if (sub != null) {
 
-                            if(Long.parseLong(sub.totalSize) != AppSubscriptionPlans.FREE.getValue()) {
-                                //if user had no free subscription, then it means subscription is expired
-                                //so update subscription
-                                Subscription subscription = new Subscription(
-                                        userName,
-                                        "",
-                                        "FREE",
-                                        String.valueOf(AppSubscriptionPlans.FREE.getValue()),
-                                        sub.coveredSize,
-                                        "",
-                                        "",
-                                        "",
-                                        new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
-                                updateDb(subscription);
+                            if (sub.subscriptionStoreId != null) {
+                                if(!sub.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
+                                    //if user had no free subscription, then it means subscription is expired
+                                    //so update subscription
+                                    Subscription subscription = new Subscription(
+                                            userName,
+                                            "",
+                                            AppSubscriptionPlans.FREE.getKey(),
+                                            "FREE",
+                                            String.valueOf(AppSubscriptionPlans.FREE.getValue()),
+                                            sub.coveredSize,
+                                            "",
+                                            "",
+                                            "",
+                                            new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+                                    updateDb(subscription);
 
-                            }else {
+                                }else {
 
-                                getSubscriptionsList();
+                                    getSubscriptionsList();
+                                }
                             }
 
                         }else {
