@@ -69,14 +69,10 @@ public class FileController implements MainController {
                                 Log.d("size", String.valueOf(backedUpFiles.size()));
                                 //save data to room
                                 saveDataToRoomDb(backedUpFiles);
+
+                                //update last sync token
+                                Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
                             }
-//                            else if (tableName == Configs.tableName2){
-//                                //repeat as the above if body but accessing the dao and class related to the current table
-//                            }
-                            //update last sync token
-                            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
-                            //notify the main ui thread
-//                            context.getContentResolver().notifyChange(Configs.URI_TASK, null, false);
                             hasDataLoaded = true;
                         }
                     }

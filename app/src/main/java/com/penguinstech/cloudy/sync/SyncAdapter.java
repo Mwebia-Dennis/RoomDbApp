@@ -20,6 +20,7 @@ import com.penguinstech.cloudy.controller.TaskController;
 import com.penguinstech.cloudy.room_db.AppDatabase;
 import com.penguinstech.cloudy.room_db.Subscription;
 import com.penguinstech.cloudy.room_db.Token;
+import com.penguinstech.cloudy.utils.AppSubscriptionPlans;
 import com.penguinstech.cloudy.utils.Configs;
 import com.penguinstech.cloudy.utils.Util;
 
@@ -103,6 +104,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
 
 
+                        }else {
+                            //user has no subscription set.
+                            Util.setNewSubscription(localDatabase,userName);
                         }
                     });
 
@@ -136,32 +140,38 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                 //get token from room
                 Token token = localDatabase.tokenDao().loadLastSyncToken(tableName);
                 if (dataSnapshot.exists() && token != null){
-                    //check if user has enough space in cloud
-                    //give allowance of about 10mb.
-                    if((Long.parseLong(subscription.totalSize) - Long.parseLong(subscription.coveredSize)) < Util.convertMbToBytes(limiter)) {
 
-                        //check if the current client was the last one to update the server
-                        Token firebaseToken = dataSnapshot.getValue(Token.class);
-                        Log.d("firebase device", firebaseToken.deviceId);
-                        Log.d("local device", firebaseToken.deviceId);
-                        Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
-                        if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
-                            //update server
-                            if (tableName.equals(Configs.tableName)) {
-                                new TaskController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
-                            }else if (tableName.equals(Configs.filesTableName)) {
-                                new FileController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
+
+                    //check if user is subcribed
+                    if (!subscription.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
+                        //check if user has enough space in cloud
+                        //give allowance of about 10mb.
+                        if((Long.parseLong(subscription.totalSize) - Long.parseLong(subscription.coveredSize)) < Util.convertMbToBytes(limiter)) {
+
+                            //check if the current client was the last one to update the server
+                            Token firebaseToken = dataSnapshot.getValue(Token.class);
+                            Log.d("firebase device", firebaseToken.deviceId);
+                            Log.d("local device", firebaseToken.deviceId);
+                            Log.d("ids", (token.deviceId.trim().equals(firebaseToken.deviceId.trim()))?"true":"false");
+                            if(token.deviceId.trim().equals(firebaseToken.deviceId.trim())){
+                                //update server
+                                if (tableName.equals(Configs.tableName)) {
+                                    new TaskController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
+                                }else if (tableName.equals(Configs.filesTableName)) {
+                                    new FileController(context, localDatabase).saveDataToFirestore(false, token.lastSync);
+                                }
+                            }else {
+
+                                //compare both  local to and from firestore data and update
+                                if (tableName.equals(Configs.tableName)) {
+                                    new TaskController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
+                                }else if (tableName.equals(Configs.filesTableName)) {
+                                    new FileController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
+                                }
+
                             }
-                        }else {
-
-                            //compare both  local to and from firestore data and update
-                            if (tableName.equals(Configs.tableName)) {
-                                new TaskController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
-                            }else if (tableName.equals(Configs.filesTableName)) {
-                                new FileController(context, localDatabase).compareRoomToFirestoreData(token.lastSync);
-                            }
-
                         }
+
                     }
 
 
@@ -177,23 +187,32 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                     }
 
                 }else if (!dataSnapshot.exists() && token != null) {
-                    //check if user has enough space in cloud
-                    //give allowance of about 10mb.
-                    if((Long.parseLong(subscription.totalSize) - Long.parseLong(subscription.coveredSize)) < Util.convertMbToBytes(limiter)) {
 
-                        //firestore is emmpty. update with room data.
-                        if (tableName.equals(Configs.tableName)) {
-                            new TaskController(context, localDatabase).saveDataToFirestore(true, "");
-                        }else if (tableName.equals(Configs.filesTableName)) {
-                            new FileController(context, localDatabase).saveDataToFirestore(true, "");
+
+                    //check if user is subcribed
+                    if (!subscription.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
+                        //check if user has enough space in cloud
+                        //give allowance of about 10mb.
+                        if ((Long.parseLong(subscription.totalSize) - Long.parseLong(subscription.coveredSize)) < Util.convertMbToBytes(limiter)) {
+
+                            //firestore is emmpty. update with room data.
+                            if (tableName.equals(Configs.tableName)) {
+                                new TaskController(context, localDatabase).saveDataToFirestore(true, "");
+                            } else if (tableName.equals(Configs.filesTableName)) {
+                                new FileController(context, localDatabase).saveDataToFirestore(true, "");
+                            }
                         }
                     }
 
                 }else {
 
                     //if both are null then user has no data.
-                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
-                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
+                    //check if user is subcribed
+                    if (!subscription.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
+
+                        Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
+                        Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
+                    }
                 }
             }).start();
 

@@ -38,43 +38,7 @@ public class AuthenticacteActivity extends AppCompatActivity {
             }else {
 
                 Util.login(AuthenticacteActivity.this, userName);
-                new Thread(()->{
-
-                    DatabaseReference firebaseDatabase = FirebaseDatabase.getInstance().getReference();
-                    DatabaseReference ref = firebaseDatabase.child(userName).child(Configs.subscriptionTableName)
-                            .child("subscription_details");
-                    ref.get().addOnSuccessListener(dataSnapshot -> {
-
-                                if (!dataSnapshot.exists()){
-                                    Subscription subscription = new Subscription(
-                                            userName,
-                                            "",
-                                            "FREE",
-                                            String.valueOf(AppSubscriptionPlans.FREE.getValue()),
-                                            "0",
-                                            "",
-                                            "",
-                                            "",
-                                            new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
-                                   ref.setValue(subscription).addOnSuccessListener(aVoid -> {
-                                                new Thread(()->{
-
-                                                    List<Subscription> list = new ArrayList<>();
-                                                    list.add(subscription);
-                                                    localDatabase.subscriptionDao().insertAll(list);
-
-                                                }).start();
-                                    });
-                                }else {
-                                    Subscription subscription = dataSnapshot.getValue(Subscription.class);
-                                    new Thread(()->{
-                                        List<Subscription> list = new ArrayList<>();
-                                        list.add(subscription);
-                                        localDatabase.subscriptionDao().insertAll(list);
-                                    }).start();
-                                }
-                    });
-                }).start();
+                Util.setNewSubscription(localDatabase,userName);
                 finish();
             }
 

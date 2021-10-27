@@ -16,6 +16,9 @@ public class Subscription {
     @ColumnInfo(name = "user_id")
     public String userId;
 
+    @ColumnInfo(name = "subscription_store_id")
+    public String subscriptionStoreId;
+
     @ColumnInfo(name = "subscription_type")
     public String subscriptionType;
 
@@ -48,10 +51,11 @@ public class Subscription {
         //empty constructor very important
     }
 
-    public Subscription(String userId, String orderId, String subscriptionType, String totalSize, String coveredSize, String paymentStatus,
-                        String purchaseTime, String purchaseToken, String updatedAt) {
+    public Subscription(String userId, String orderId,String subscriptionStoreId, String subscriptionType, String totalSize,
+                        String coveredSize, String paymentStatus,String purchaseTime, String purchaseToken, String updatedAt) {
         this.userId = userId;
         this.orderId = orderId;
+        this.subscriptionStoreId = subscriptionStoreId;
         this.subscriptionType = subscriptionType;
         this.paymentStatus = paymentStatus;
         this.purchaseTime = purchaseTime;

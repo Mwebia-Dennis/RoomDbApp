@@ -14,6 +14,7 @@ public interface Configs {
     String AUTHORITY = "com.penguinstech.cloudy.provider";
     String ACCOUNT_TYPE = "penguinstech.com";
     String ACCOUNT = "com.penguinstech.cloudy";
+    String APP_PACKAGE = "com.penguinstech.cloudy";
     Uri URI_TASK = Uri.parse(
             "content://" + Configs.AUTHORITY + "/" + Configs.tableName);
 }
