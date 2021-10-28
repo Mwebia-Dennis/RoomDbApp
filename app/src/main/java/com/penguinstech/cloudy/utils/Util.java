@@ -120,6 +120,7 @@ public class Util {
         }).start();
     }
 
+
     public static void saveSubscriptionToRoomDb(SubscriptionDao subscriptionDao, Subscription subscription) {
 
         new Thread() {
@@ -176,8 +177,26 @@ public class Util {
         return gson.fromJson(jsonElement, Task.class);
     }
 
+    public static long getPlanTotalSize(String planId) {
+
+        long totalSize = 0;
+        AppSubscriptionPlans[] appSubscriptionPlans = {AppSubscriptionPlans.FREE, AppSubscriptionPlans.BRONZE,
+                AppSubscriptionPlans.SILVER,AppSubscriptionPlans.GOLD};
+        for (AppSubscriptionPlans plan:appSubscriptionPlans){
+
+            if (plan.getKey().equals(planId)) {
+                totalSize = plan.getValue();
+                break;
+            }
+        }
+        return totalSize;
+    }
+
     public static long convertMbToBytes(long sizeInMb) {
         return sizeInMb * 1024*1024;
+    }
+    public static long convertBytesToMb(long sizeInBytes) {
+        return sizeInBytes / (1024*1024);
     }
     public static long convertGbToBytes(long sizeInMb) {
         return sizeInMb * 1024*1024*1024;

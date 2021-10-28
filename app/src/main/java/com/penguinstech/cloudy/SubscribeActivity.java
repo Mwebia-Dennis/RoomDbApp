@@ -41,6 +41,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
+
 public class SubscribeActivity extends AppCompatActivity {
 
     AppDatabase localDatabase;
@@ -56,6 +58,8 @@ public class SubscribeActivity extends AppCompatActivity {
     private final PurchasesUpdatedListener purchasesUpdatedListener = (billingResult, purchases) -> {
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
                 && purchases != null) {
+
+            getUserSubscription();
             for (Purchase purchase : purchases) {
                 handlePurchase(purchase);
             }
@@ -156,23 +160,29 @@ public class SubscribeActivity extends AppCompatActivity {
     }
 
     private void updateUI() {
-        new Thread() {
-            @Override
-            public void run() {
 
-                Subscription subscription = localDatabase.subscriptionDao().getLastSubscription();
-                TextView current_planTV = findViewById(R.id.current_planTV);
-                try {
-                    runOnUiThread(() -> {
+        firebaseDatabase.child(userName).child(Configs.subscriptionTableName)
+                .child("subscription_details").get().addOnSuccessListener(dataSnapshot -> {
 
-                        if(subscription != null)current_planTV.setText("Your subscription plan is: " + subscription.subscriptionType);
-                    });
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }.start();
+                    if (dataSnapshot.exists()){
+
+                        Subscription subscription = dataSnapshot.getValue(Subscription.class);
+                        TextView current_planTV = findViewById(R.id.current_planTV);
+                        TextView current_spaceTV = findViewById(R.id.current_spaceTV);
+                        TextView totalSizeTV = findViewById(R.id.totalSizeTV);
+
+                        CircularProgressIndicator circularProgress = findViewById(R.id.circular_progress);
+                        if(subscription != null){
+                            current_planTV.setText("Plan: " + subscription.subscriptionType);
+                            circularProgress.setProgress(
+                                    Math.round(Double.parseDouble(subscription.coveredSize)),
+                                    Math.round(Double.parseDouble(subscription.totalSize))
+                            );
+                            current_spaceTV.setText("Covered Space: "+(Long.parseLong(subscription.coveredSize))+" bytes");
+                            totalSizeTV.setText("Total Size: "+(Long.parseLong(subscription.totalSize))+" bytes");
+                        }
+                    }
+                });
     }
 
     private void getSubscriptionsList() {
@@ -231,7 +241,6 @@ public class SubscribeActivity extends AppCompatActivity {
                 billingClient.acknowledgePurchase(acknowledgePurchaseParams, billingResult -> {
 
                     if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                        getUserSubscription();
                         Toast.makeText(SubscribeActivity.this, "Subscription has been acknowledged", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -247,13 +256,14 @@ public class SubscribeActivity extends AppCompatActivity {
                 if(list.size() > 0){
                     Purchase lastPurchase = list.get(list.size() - 1);
                     currentPurchase= lastPurchase;
+                    long planSize = Util.getPlanTotalSize(lastPurchase.getSkus().get(0));
                     final Subscription newSubscription = new Subscription(
                             userName,
                             lastPurchase.getOrderId(),
                             lastPurchase.getSkus().get(0),
                             lastPurchase.getPackageName(),
-//                            String.valueOf(AppSubscriptionPlans.valueOf(lastPurchase.getSkus().get(0))),
-                            String.valueOf(Util.convertMbToBytes(Long.parseLong(lastPurchase.getSkus().get(0)))),
+                            String.valueOf(planSize),
+//                            String.valueOf(Util.convertMbToBytes(Long.parseLong(lastPurchase.getSkus().get(0)))),
                             "0",
                             String.valueOf(lastPurchase.getPurchaseState()),
                             String.valueOf(lastPurchase.getPurchaseTime()),
@@ -281,41 +291,44 @@ public class SubscribeActivity extends AppCompatActivity {
                 }else {
                     //user has no subscription or it is expired
                     //so update databases
+                    //check if subscription exists in db
+                    firebaseDatabase.child(userName).child(Configs.subscriptionTableName)
+                            .child("subscription_details").get().addOnSuccessListener(dataSnapshot -> {
 
-                    new Thread(()->{
-                        //check if subscription exists in db
-                        Subscription sub = localDatabase.subscriptionDao().getLastSubscription();
-                        if (sub != null) {
+                        if (dataSnapshot.exists()) {
 
-                            if (sub.subscriptionStoreId != null) {
-                                if(!sub.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
-                                    //if user had no free subscription, then it means subscription is expired
-                                    //so update subscription
-                                    Subscription subscription = new Subscription(
-                                            userName,
-                                            "",
-                                            AppSubscriptionPlans.FREE.getKey(),
-                                            "FREE",
-                                            String.valueOf(AppSubscriptionPlans.FREE.getValue()),
-                                            sub.coveredSize,
-                                            "",
-                                            "",
-                                            "",
-                                            new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
-                                    updateDb(subscription);
+                            Subscription sub = dataSnapshot.getValue(Subscription.class);
+                            if (sub != null) {
 
-                                }else {
+                                if (sub.subscriptionStoreId != null) {
+                                    if(!sub.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
+                                        //if user had no free subscription, then it means subscription is expired
+                                        //so update subscription
+                                        Subscription subscription = new Subscription(
+                                                userName,
+                                                "",
+                                                AppSubscriptionPlans.FREE.getKey(),
+                                                "FREE",
+                                                String.valueOf(AppSubscriptionPlans.FREE.getValue()),
+                                                sub.coveredSize,
+                                                "",
+                                                "",
+                                                "",
+                                                new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+                                        updateDb(subscription);
 
-                                    getSubscriptionsList();
+                                    }else {
+
+                                        getSubscriptionsList();
+                                    }
                                 }
+
+                            }else {
+
+                                getSubscriptionsList();
                             }
-
-                        }else {
-
-                            getSubscriptionsList();
                         }
-                    }).start();
-
+                    });
 
 
                 }

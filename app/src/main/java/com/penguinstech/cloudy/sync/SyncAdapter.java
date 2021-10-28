@@ -9,8 +9,15 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.Room;
 
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.BillingClientStateListener;
+import com.android.billingclient.api.BillingResult;
+import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -24,6 +31,12 @@ import com.penguinstech.cloudy.utils.AppSubscriptionPlans;
 import com.penguinstech.cloudy.utils.Configs;
 import com.penguinstech.cloudy.utils.Util;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
 /**
  * Handle the transfer of data between a server and an
  * app, using the Android sync adapter framework.
@@ -34,7 +47,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     DatabaseReference firebaseDatabase;//firebase realtime db
     AppDatabase localDatabase;//rooom db
     Context context;
-    long limiter = 8;
+    long limiter = 5;
     final int PAGINATOR  = 100;
 
     /**
@@ -96,6 +109,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                         if (dataSnapshot.exists()) {
 
                             Subscription subscription = dataSnapshot.getValue(Subscription.class);
+                            updateUserSubscription(userName, subscription);
                             String[] listOfTables = new String[] {Configs.tableName, Configs.filesTableName};
                             for (String tableName: listOfTables) {
 
@@ -146,7 +160,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                     if (!subscription.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
                         //check if user has enough space in cloud
                         //give allowance of about 10mb.
-                        if((Long.parseLong(subscription.totalSize) - Long.parseLong(subscription.coveredSize)) < Util.convertMbToBytes(limiter)) {
+                        long remainingSpace = (Long.parseLong(subscription.totalSize) - Long.parseLong(subscription.coveredSize));
+                        long lim = Util.convertMbToBytes(limiter);
+                        if(remainingSpace > lim) {
 
                             //check if the current client was the last one to update the server
                             Token firebaseToken = dataSnapshot.getValue(Token.class);
@@ -222,6 +238,114 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         });
 
 
+
+    }
+
+
+    private void updateUserSubscription(String userName, Subscription subscription) {
+        BillingClient billingClient = BillingClient.newBuilder(context)
+                .setListener((billingResult, list) -> {
+
+                })
+                .enablePendingPurchases()
+                .build();
+        billingClient.startConnection(new BillingClientStateListener() {
+            @Override
+            public void onBillingSetupFinished(BillingResult billingResult1) {
+                if (billingResult1.getResponseCode() ==  BillingClient.BillingResponseCode.OK) {
+                    // The BillingClient is ready. You can query purchases here.
+                    billingClient.queryPurchasesAsync(BillingClient.SkuType.SUBS, (billingResult, list) -> {
+
+                        if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                            //check if the current subscription is present in database.
+                            if(list.size() > 0){
+                                Purchase lastPurchase = list.get(list.size() - 1);
+                                long planSize = Util.getPlanTotalSize(lastPurchase.getSkus().get(0));
+                                final Subscription newSubscription = new Subscription(
+                                        userName,
+                                        lastPurchase.getOrderId(),
+                                        lastPurchase.getSkus().get(0),
+                                        lastPurchase.getPackageName(),
+                                        String.valueOf(Util.convertMbToBytes(planSize)),
+//                            String.valueOf(Util.convertMbToBytes(Long.parseLong(lastPurchase.getSkus().get(0)))),
+                                        "0",
+                                        String.valueOf(lastPurchase.getPurchaseState()),
+                                        String.valueOf(lastPurchase.getPurchaseTime()),
+                                        lastPurchase.getPurchaseToken(),
+                                        new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date())
+                                );
+                                if (subscription != null){
+                                    if (!subscription.orderId.equals(lastPurchase.getOrderId())) {
+                                        //update firebase
+                                        //add the previous covered space to our new subscription
+                                        newSubscription.coveredSize = subscription.coveredSize;
+                                        updateDb(newSubscription, userName);
+                                    }
+
+                                }else{
+                                    updateDb(newSubscription, userName);
+                                }
+
+                            }else {
+                                //user has no subscription or it is expired
+                                //so update databases
+                                //check if subscription exists in db
+                                Subscription sub = subscription;
+                                if (sub != null) {
+
+                                    if (sub.subscriptionStoreId != null) {
+                                        if(!sub.subscriptionStoreId.equals(AppSubscriptionPlans.FREE.getKey())) {
+                                            //if user had no free subscription, then it means subscription is expired
+                                            //so update subscription
+                                            Subscription subscription = new Subscription(
+                                                    userName,
+                                                    "",
+                                                    AppSubscriptionPlans.FREE.getKey(),
+                                                    "FREE",
+                                                    String.valueOf(AppSubscriptionPlans.FREE.getValue()),
+                                                    sub.coveredSize,
+                                                    "",
+                                                    "",
+                                                    "",
+                                                    new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+                                            updateDb(subscription, userName);
+
+                                        }
+                                    }
+
+                                }
+
+
+                            }
+
+                        }
+
+                    });
+                }
+            }
+            @Override
+            public void onBillingServiceDisconnected() {
+                // Try to restart the connection on the next request to
+                // Google Play by calling the startConnection() method.
+                updateUserSubscription(userName, subscription);
+            }
+        });
+    }
+
+    private void updateDb(Subscription subscription, String userName){
+
+        firebaseDatabase.child(userName).child(Configs.subscriptionTableName)
+                .child("subscription_details")
+                .setValue(subscription).addOnSuccessListener(aVoid -> {
+
+            new Thread(()->{
+
+                List<Subscription> list = new ArrayList<>();
+                list.add(subscription);
+                localDatabase.subscriptionDao().insertAll(list);
+            }).start();
+
+        });
 
     }
 

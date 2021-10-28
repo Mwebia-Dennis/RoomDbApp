@@ -70,12 +70,14 @@ public class FileController implements MainController {
                                 //save data to room
                                 saveDataToRoomDb(backedUpFiles);
 
-                                //update last sync token
-                                Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
                             }
                             hasDataLoaded = true;
                         }
                     }
+
+
+                    //update last sync token
+                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName);
                 })
                 .addOnFailureListener(e -> {
 
@@ -199,7 +201,7 @@ public class FileController implements MainController {
                                                             if(task.isSuccessful()){
                                                                 task.getResult().getStorage().getMetadata()
                                                                         .addOnSuccessListener(storageMetadata -> {
-                                                                            subscriptionController.updateDatabases(storageMetadata.getSizeBytes(), false);
+                                                                            subscriptionController.updateDatabases(storageMetadata.getSizeBytes(), true);
                                                                         });
                                                                 task.getResult()
                                                                         .getStorage().getDownloadUrl()

@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -45,17 +46,17 @@ public class SubscrtiptionsAdapter extends RecyclerView.Adapter<SubscrtiptionsAd
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 
         SkuDetails subscription = skuDetails.get(position);
-        String sku = subscription.getSku();
+        holder.subTitle.setText(subscription.getTitle());
+        holder.subDescription.setText(subscription.getDescription());
+        holder.subPrice.setText(String.format("%s %s", subscription.getPriceCurrencyCode(), subscription.getPrice()));
         if (!subscriptionStoreId.equals(subscription.getSku())) {
 
-            holder.subTitle.setText(subscription.getTitle());
-            holder.subDescription.setText(subscription.getDescription());
-            holder.subPrice.setText(String.format("%s %s", subscription.getPriceCurrencyCode(), subscription.getPrice()));
 
             //if purchase token is empty, then subsciption is new
             //else subscription is an upgrade or downgrade
             if (purchaseToken.equals("")) {
 
+                String title = subscription.getTitle();
                 holder.subscribeBtn.setText("Subscribe");
                 holder.subscribeBtn.setOnClickListener(v->{
                     // An activity reference from which the billing flow will be launched.
@@ -89,6 +90,12 @@ public class SubscrtiptionsAdapter extends RecyclerView.Adapter<SubscrtiptionsAd
 
                 });
             }
+        }else {
+            holder.subscribeBtn.setText("Subscribed");
+            holder.subscribeBtn.setOnClickListener(v->{
+                Toast.makeText(context, "You are already subscribed to this plan", Toast.LENGTH_SHORT).show();
+
+            });
         }
     }
 

@@ -3,9 +3,9 @@ package com.penguinstech.cloudy.utils;
 public enum AppSubscriptionPlans {
     //id, total size in bytes
     FREE("0", Util.convertMbToBytes(0)),
-    BRONZE("1", Util.convertMbToBytes(5)),
-    SILVER("2", Util.convertMbToBytes(10)),
-    GOLD("3", Util.convertMbToBytes(15));
+    BRONZE("1", Util.convertMbToBytes(10)),
+    SILVER("2", Util.convertMbToBytes(50)),
+    GOLD("3", Util.convertMbToBytes(100));
 
     private final String key;
     private final long value;

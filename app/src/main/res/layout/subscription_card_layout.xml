@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:text="@string/free"
             android:id="@+id/subTitle"
-            android:textColor="@color/red"
+            android:textColor="@color/purple_500"
             android:gravity="center"
             android:padding="10dp"
             android:textSize="20sp"/>
