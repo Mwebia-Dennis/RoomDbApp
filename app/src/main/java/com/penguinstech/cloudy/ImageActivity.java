@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.UUID;
 
 public class ImageActivity extends AppCompatActivity {
 
@@ -99,6 +100,7 @@ public class ImageActivity extends AppCompatActivity {
                         List<Files> newFilesList = new ArrayList<>();
                         String deviceId= Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
                         newFilesList.add(new Files(
+                                UUID.randomUUID().toString(),
                                 deviceId,
                                 data.toString(),
                                 "",

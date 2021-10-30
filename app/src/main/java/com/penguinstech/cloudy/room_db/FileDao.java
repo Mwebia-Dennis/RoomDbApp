@@ -42,11 +42,14 @@ public interface FileDao {
     int getCount();
 
 
-    @Query("SELECT count(id) FROM "+Configs.filesTableName+" WHERE id = :fileId")
-    int exists(int fileId);
+    @Query("SELECT * FROM "+Configs.filesTableName+" WHERE id = :id")
+    Files loadFileById(int id);
 
-    @Query("SELECT * FROM "+Configs.filesTableName+" WHERE id = :fileId")
-    Files loadFileById(int fileId);
+    @Query("SELECT count(id) FROM "+Configs.filesTableName+" WHERE file_id = :fileId")
+    int exists(String fileId);
+
+    @Query("SELECT * FROM "+Configs.filesTableName+" order by updated_at asc limit 1")
+    Files getFirstFile();
 
     @Insert
     void insertAll(List<Files> files);

@@ -7,6 +7,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.type.DateTime;
 import com.penguinstech.cloudy.room_db.AppDatabase;
 import com.penguinstech.cloudy.room_db.Task;
 import com.penguinstech.cloudy.utils.Configs;
@@ -14,6 +15,7 @@ import com.penguinstech.cloudy.utils.Util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -39,39 +41,73 @@ public class  TaskController implements  MainController{
         subscriptionController = new SubscriptionController(context, localDatabase);
     }
     @Override
-    public void syncAllDataFromFirestore() {
+    public void syncAllDataFromFirestore(boolean isNewData) {
 
-        db.collection(Util.getUserName(context)).document(tableName).collection(tableName).get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
+        new Thread(()->{
 
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        Log.d("firestore onSuccess", "LIST EMPTY");
-                    } else {
-                        // get all data and add to database
-                        if (!hasDataLoaded){
+            int dataCount = localDatabase.taskDao().getCount();
+            db.collection(Util.getUserName(context)).document(tableName).collection(tableName).get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
 
-                            //update accordingly per table
-                            if (tableName.equals(Configs.tableName)){
+                        if (queryDocumentSnapshots.isEmpty()) {
+                            Log.d("firestore onSuccess", "LIST EMPTY");
+                        } else {
+                            // get all data and add to database
+                            if (!hasDataLoaded){
 
                                 //convert whole queryDocumentSnapshots to list
                                 List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
+                                //check if there is data with same id as data in room db
+                                new Thread(()->{
+                                    for (Task newTask: backedUpTasks) {
+                                        Task existingTask = localDatabase.taskDao().loadTaskById(newTask.id);
+                                        if (existingTask != null) {
+                                            //update firebase data id
+                                            newTask.id = null;
+                                            //change existing data date so
+                                        }
 
-                                Log.d("size", String.valueOf(backedUpTasks.size()));
-                                //save data to room
-                                Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
+
+                                    }
+
+                                    Log.d("size", String.valueOf(backedUpTasks.size()));
+                                    //save data to room
+                                    Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
+                                    hasDataLoaded = true;
+
+                                }).start();
+
+
+
                             }
-                            hasDataLoaded = true;
                         }
-                    }
-                    //update last sync token
-                    Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
-                    //notify the main ui thread
-                    context.getContentResolver().notifyChange(Configs.URI_TASK, null, false);
-                })
-                .addOnFailureListener(e -> {
 
-                    Log.d("firestore onFailure", ": True");
-                });
+                        new Thread(()->{
+                            //get first task to be added in room
+                            Task firstTask = localDatabase.taskDao().getFirstTask();
+                            String date = "";
+                            //if the covered size is zero, then register update token date as the first task date minus 5 minutes
+                            //this ensures all room data is synced when user creates subscription for the first time
+                            if(dataCount > 0 && firstTask != null) {
+
+                                // subtract date by 5 minutes
+                                date = Util.subtractFiveMinutes(firstTask.updatedAt);
+                            }
+
+                            //update last sync token
+                            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName, date);
+                        }).start();
+                        //notify the main ui thread
+//                    context.getContentResolver().notifyChange(Configs.URI_TASK, null, false);
+                    })
+                    .addOnFailureListener(e -> {
+
+                        Log.d("firestore onFailure", ": True");
+                    });
+
+        }).start();
+
+
     }
 
     @Override
@@ -83,94 +119,85 @@ public class  TaskController implements  MainController{
 
                 //get tasks from room db
                 //get data in batches to avoid memory overload
-                //update accordingly per table
-                if (tableName.equals(Configs.tableName)){
-
-                    int totalNewData = isAllData?localDatabase.taskDao().getCount():localDatabase.taskDao().filterByDateCount(updatedAt);
-                    Log.d("totalNewData", String.valueOf(totalNewData));
-                    int batchSize = 0;
-                    while (batchSize <= totalNewData){
+                int totalNewData = isAllData?localDatabase.taskDao().getCount():localDatabase.taskDao().filterByDateCount(updatedAt);
+                Log.d("totalNewData", String.valueOf(totalNewData));
+                int batchSize = 0;
+                while (batchSize <= totalNewData){
 
 
-                        //get first 100
-                        List<Task> newTasks = isAllData?localDatabase.taskDao()
-                                .getAll():localDatabase.taskDao().filterByDate(updatedAt, PAGINATOR, batchSize);
-                        //upload items to firestore so as data matches the room data
-                        for(Task task: newTasks) {
+                    //get first 100
+                    List<Task> newTasks = isAllData?localDatabase.taskDao()
+                            .getAll():localDatabase.taskDao().filterByDate(updatedAt, PAGINATOR, batchSize);
+                    //upload items to firestore so as data matches the room data
+                    for(Task task: newTasks) {
 
-                            //if @param isAllData = true: send all data to server
-                            //else
-                            //check if doc is in server and update
-                            if(isAllData) {
-                                db.collection(Util.getUserName(context))
-                                        .document(tableName).collection(tableName)
-                                        .add(task)
-                                        .addOnSuccessListener(documentReference -> {
-                                            //update space covered in server
-                                            subscriptionController.updateCoveredSize(documentReference, true);
-                                            Log.d("backing Data", "Successful");
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.d("backing Data", "Failed");
-                                        });
-                            }else {
-                                db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                        .whereEqualTo("id", task.id)
-                                        .get().addOnSuccessListener(queryDocumentSnapshots -> {
+                        //if @param isAllData = true: send all data to server
+                        //else
+                        //check if doc is in server and update
+                        if(isAllData) {
+                            db.collection(Util.getUserName(context))
+                                    .document(tableName).collection(tableName)
+                                    .add(task)
+                                    .addOnSuccessListener(documentReference -> {
+                                        //update space covered in server
+                                        subscriptionController.updateCoveredSize(documentReference, true);
+                                        Log.d("backing Data", "Successful");
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Log.d("backing Data", "Failed");
+                                    });
+                        }else {
+                            db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                                    .whereEqualTo("taskId", task.taskId)
+                                    .get().addOnSuccessListener(queryDocumentSnapshots -> {
 
-                                            //check if the document exists
-                                            if (!queryDocumentSnapshots.isEmpty()) {
+                                        //check if the document exists
+                                        if (!queryDocumentSnapshots.isEmpty()) {
 
-                                                //update server
-                                                List<DocumentSnapshot> docsList = queryDocumentSnapshots.getDocuments();
-                                                int value = task.isDeleted;
-                                                Log.d("value", String.valueOf(value));
-                                                if (docsList.size() > 0){
-                                                    if (task.isDeleted == 1) {
-                                                        //update covered size
-                                                        subscriptionController.updateCoveredSize(
-                                                                db.collection(Util.getUserName(context)).document(tableName).collection(tableName).document(docsList.get(0).getId())
-                                                                , false);
-                                                        //delete data from firebase
-                                                        db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                                .document(docsList.get(0).getId()).delete()
-                                                                .addOnSuccessListener(aVoid -> {
+                                            //update server
+                                            List<DocumentSnapshot> docsList = queryDocumentSnapshots.getDocuments();
+                                            int value = task.isDeleted;
+                                            Log.d("value", String.valueOf(value));
+                                            if (docsList.size() > 0){
+                                                if (task.isDeleted == 1) {
+                                                    //update covered size
+                                                    subscriptionController.updateCoveredSize(
+                                                            db.collection(Util.getUserName(context)).document(tableName).collection(tableName).document(docsList.get(0).getId())
+                                                            , false);
+                                                    //delete data from firebase
+                                                    db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
+                                                            .document(docsList.get(0).getId()).delete()
+                                                            .addOnSuccessListener(aVoid -> {
 
-                                                                    Log.d("Deleting data", "successful");
-                                                                });
-                                                    }else {
-                                                        updateServer(task, docsList.get(0).getId());
-                                                    }
+                                                                Log.d("Deleting data", "successful");
+                                                            });
+                                                }else {
+                                                    updateServer(task, docsList.get(0).getId());
                                                 }
-
-                                            } else {
-                                                db.collection(Util.getUserName(context))
-                                                        .document(tableName).collection(tableName)
-                                                        .add(task)
-                                                        .addOnSuccessListener(documentReference -> {
-                                                            subscriptionController.updateCoveredSize(documentReference, true);
-                                                            Log.d("backing Data", "Successful");
-                                                        })
-                                                        .addOnFailureListener(e -> {
-                                                            Log.d("backing Data", "Failed");
-                                                        });
                                             }
+
+                                        } else {
+                                            db.collection(Util.getUserName(context))
+                                                    .document(tableName).collection(tableName)
+                                                    .add(task)
+                                                    .addOnSuccessListener(documentReference -> {
+                                                        subscriptionController.updateCoveredSize(documentReference, true);
+                                                        Log.d("backing Data", "Successful");
+                                                    })
+                                                    .addOnFailureListener(e -> {
+                                                        Log.d("backing Data", "Failed");
+                                                    });
                                         }
-                                );
-                            }
-
-
+                                    }
+                            );
                         }
-                        batchSize += PAGINATOR;
+
+
                     }
-
+                    batchSize += PAGINATOR;
                 }
-//                else if(tableName.equals("calendars") {
-//
-//                    uploadCalendars(tableName,updatedAt,isAllData);
-//                }
 
-                Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
+                Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName, "");
             }
         }.start();
 
@@ -200,7 +227,7 @@ public class  TaskController implements  MainController{
 
                     for (Task task : listOfRoomTasks) {
                         db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                .whereEqualTo("id", task.id)
+                                .whereEqualTo("taskId", task.taskId)
                                 .get().addOnSuccessListener(queryDocumentSnapshots -> {
 
                             //check if the document exists
@@ -278,7 +305,7 @@ public class  TaskController implements  MainController{
 
             }
             compareFirestoreToRoomData(tokenLastSync);
-            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
+            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName, "");
 
         }).start();
     }
@@ -314,7 +341,7 @@ public class  TaskController implements  MainController{
                                 for (DocumentSnapshot doc : documentSnapshots) {
                                     //convert map to  task object
                                     Task task = Util.convertMapToTaskObject(doc.getData());
-                                    if(localDatabase.taskDao().exists(task.id) == 0){
+                                    if(localDatabase.taskDao().exists(task.taskId) == 0){
                                         //get all tasks in firestore but not in local
                                         newTasksFromFirestoreList.add(task);
                                     }else {
@@ -334,7 +361,7 @@ public class  TaskController implements  MainController{
                     });
 
 
-            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName);
+            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName, "");
 
         }).start();
     }
@@ -346,7 +373,7 @@ public class  TaskController implements  MainController{
         Map<String, Object> newData = new HashMap<>();
         newData.put("title", task.title);
         newData.put("description", task.description);
-        newData.put("id", task.id);
+        newData.put("taskId", task.taskId);
         newData.put("updatedAt", task.updatedAt);
         DocumentReference ref = db.collection(Util.getUserName(context))
                 .document(tableName).collection(tableName)

@@ -10,7 +10,10 @@ import com.penguinstech.cloudy.utils.Configs;
 public class Files {
 
     @PrimaryKey(autoGenerate = true)
-    public int id;
+    public Integer id;
+
+    @ColumnInfo(name = "file_id")
+    public String fileId;
 
     @ColumnInfo(name = "device_id")
     public String deviceId;
@@ -33,7 +36,8 @@ public class Files {
         //empty constructor very important
     }
 
-    public Files(String deviceId, String localPath, String firestorePath, String updatedAt, int isDeleted) {
+    public Files(String fileId, String deviceId, String localPath, String firestorePath, String updatedAt, int isDeleted) {
+        this.fileId = fileId;
         this.deviceId = deviceId;
         this.localPath = localPath;
         this.firestorePath = firestorePath;
@@ -41,8 +45,9 @@ public class Files {
         this.isDeleted = isDeleted;
     }
 
-    public Files(int id, String deviceId, String localPath, String firestorePath, String updatedAt, int isDeleted) {
+    public Files(int id, String fileId, String deviceId, String localPath, String firestorePath, String updatedAt, int isDeleted) {
         this.id = id;
+        this.fileId = fileId;
         this.deviceId = deviceId;
         this.localPath = localPath;
         this.firestorePath = firestorePath;

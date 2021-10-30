@@ -16,7 +16,6 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.android.vending.BILLING" />
 
-
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -36,37 +35,6 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name="com.penguinstech.cloudy.sync.AuthenticatorService"
-            android:exported="false"
-            android:process=":auth">
-            <intent-filter>
-                <action android:name="android.accounts.AccountAuthenticator" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.accounts.AccountAuthenticator"
-                android:resource="@xml/authenticator" />
-        </service>
-        <service
-            android:name="com.penguinstech.cloudy.sync.SyncService"
-            android:exported="false"
-            android:process=":sync">
-            <intent-filter>
-                <action android:name="android.content.SyncAdapter" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.content.SyncAdapter"
-                android:resource="@xml/syncadapter" />
-        </service>
-
-        <provider
-            android:name="com.penguinstech.cloudy.sync.StubProvider"
-            android:authorities="com.penguinstech.cloudy.provider"
-            android:exported="false"
-            android:label="app provider"
-            android:syncable="true" />
     </application>
 
 </manifest>

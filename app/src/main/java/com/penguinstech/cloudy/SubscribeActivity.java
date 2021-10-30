@@ -59,7 +59,6 @@ public class SubscribeActivity extends AppCompatActivity {
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
                 && purchases != null) {
 
-            getUserSubscription();
             for (Purchase purchase : purchases) {
                 handlePurchase(purchase);
             }
@@ -172,11 +171,12 @@ public class SubscribeActivity extends AppCompatActivity {
                         TextView totalSizeTV = findViewById(R.id.totalSizeTV);
 
                         CircularProgressIndicator circularProgress = findViewById(R.id.circular_progress);
+                        long coveredSize = Math.round(Double.parseDouble(subscription.coveredSize));
+                        long totalSize = Math.round(Double.parseDouble(subscription.totalSize));
                         if(subscription != null){
                             current_planTV.setText("Plan: " + subscription.subscriptionType);
-                            circularProgress.setProgress(
-                                    Math.round(Double.parseDouble(subscription.coveredSize)),
-                                    Math.round(Double.parseDouble(subscription.totalSize))
+                            circularProgress.setProgress(coveredSize,
+                                    (totalSize>0)?totalSize:coveredSize
                             );
                             current_spaceTV.setText("Covered Space: "+(Long.parseLong(subscription.coveredSize))+" bytes");
                             totalSizeTV.setText("Total Size: "+(Long.parseLong(subscription.totalSize))+" bytes");
@@ -241,6 +241,7 @@ public class SubscribeActivity extends AppCompatActivity {
                 billingClient.acknowledgePurchase(acknowledgePurchaseParams, billingResult -> {
 
                     if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                        getUserSubscription();
                         Toast.makeText(SubscribeActivity.this, "Subscription has been acknowledged", Toast.LENGTH_SHORT).show();
                     }
                 });

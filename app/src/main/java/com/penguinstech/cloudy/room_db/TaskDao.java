@@ -41,11 +41,14 @@ public interface TaskDao {
     int getCount();
 
 
-    @Query("SELECT count(id) FROM "+Configs.tableName+" WHERE id = :taskId")
-    int exists(int taskId);
+    @Query("SELECT count(id) FROM "+Configs.tableName+" WHERE task_id = :taskId")
+    int exists(String taskId);
 
-    @Query("SELECT * FROM "+Configs.tableName+" WHERE id = :taskId")
-    Task loadTaskById(int taskId);
+    @Query("SELECT * FROM "+Configs.tableName+" order by updated_at asc limit 1")
+    Task getFirstTask();
+
+    @Query("SELECT * FROM "+Configs.tableName+" WHERE id = :id")
+    Task loadTaskById(int id);
 
     @Insert
     void insertAll(List<Task> tasks);

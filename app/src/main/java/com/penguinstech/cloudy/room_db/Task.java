@@ -8,7 +8,10 @@ import androidx.room.PrimaryKey;
 public class Task {
 
     @PrimaryKey(autoGenerate = true)
-    public int id;
+    public Integer id;
+
+    @ColumnInfo(name = "task_id")
+    public String taskId;
 
     @ColumnInfo(name = "title")
     public String title;
@@ -28,14 +31,15 @@ public class Task {
         //empty constructor very important
     }
 
-    public Task(String title, String description, String updatedAt, int isDeleted) {
+    public Task(String taskId,String title, String description, String updatedAt, int isDeleted) {
+        this.taskId = taskId;
         this.title = title;
         this.description = description;
         this.updatedAt = updatedAt;
         this.isDeleted = isDeleted;
     }
 
-    public Task(int id, String title, String description, String updatedAt, int isDeleted) {
+    public Task(int id, String taskId, String title, String description, String updatedAt, int isDeleted) {
         this.id = id;
         this.title = title;
         this.description = description;

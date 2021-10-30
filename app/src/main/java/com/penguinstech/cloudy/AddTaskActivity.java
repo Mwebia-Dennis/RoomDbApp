@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 public class AddTaskActivity extends AppCompatActivity {
 
@@ -53,6 +54,7 @@ public class AddTaskActivity extends AppCompatActivity {
         if(intent.getStringExtra("id") != null) {
             receivedTask = new Task(
                     Integer.parseInt(intent.getStringExtra("id")),
+                    intent.getStringExtra("task_id"),
                     intent.getStringExtra("title"),
                     intent.getStringExtra("description"),
                     intent.getStringExtra("updatedAt"),
@@ -98,6 +100,7 @@ public class AddTaskActivity extends AppCompatActivity {
             }else {
 
                 List<Task> taskList = new ArrayList<>();
+                taskInfo.put("taskId", UUID.randomUUID().toString());
                 taskInfo.put("title", title);
                 taskInfo.put("description", description);
                 taskInfo.put("updatedAt", new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
