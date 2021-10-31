@@ -54,7 +54,7 @@ public class SyncWorker extends Worker {
         this.context = context;
         firebaseDatabase = FirebaseDatabase.getInstance().getReference();
 
-        android.os.Debug.waitForDebugger();
+//        android.os.Debug.waitForDebugger();
     }
 
     @NonNull
@@ -165,9 +165,9 @@ public class SyncWorker extends Worker {
                     //retrieve all data from firestore and  update the local db with data from firebase
                     //dont check subscription
                     if (tableName.equals(Configs.tableName)) {
-                        new TaskController(context, localDatabase).syncAllDataFromFirestore((coveredSize == 0));
+                        new TaskController(context, localDatabase).syncAllDataFromFirestore();
                     }else if (tableName.equals(Configs.filesTableName)) {
-                        new FileController(context, localDatabase).syncAllDataFromFirestore((coveredSize == 0));
+                        new FileController(context, localDatabase).syncAllDataFromFirestore();
                     }
 
                 }else if (!dataSnapshot.exists() && token != null) {

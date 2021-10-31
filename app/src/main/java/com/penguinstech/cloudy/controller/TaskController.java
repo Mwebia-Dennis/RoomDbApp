@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import ro.alexmamo.firestore_document.FirestoreDocument;
+
 public class  TaskController implements  MainController{
     Context context;
     AppDatabase localDatabase;
@@ -31,6 +33,7 @@ public class  TaskController implements  MainController{
     final int PAGINATOR  = 100;
     String tableName;
     SubscriptionController subscriptionController;
+    FirestoreDocument firestoreDocument;
 
     public TaskController(Context context, AppDatabase localDatabase) {
         this.context = context;
@@ -39,13 +42,17 @@ public class  TaskController implements  MainController{
         db = FirebaseFirestore.getInstance();
         tableName = Configs.tableName;
         subscriptionController = new SubscriptionController(context, localDatabase);
+        firestoreDocument = FirestoreDocument.getInstance();
+
     }
     @Override
-    public void syncAllDataFromFirestore(boolean isNewData) {
+    public void syncAllDataFromFirestore() {
 
         new Thread(()->{
 
-            int dataCount = localDatabase.taskDao().getCount();
+            //check if there is data in room and get the first data.
+            Task firstTask = localDatabase.taskDao().getFirstTask();
+            //query firestore
             db.collection(Util.getUserName(context)).document(tableName).collection(tableName).get()
                     .addOnSuccessListener(queryDocumentSnapshots -> {
 
@@ -57,46 +64,23 @@ public class  TaskController implements  MainController{
 
                                 //convert whole queryDocumentSnapshots to list
                                 List<Task> backedUpTasks = queryDocumentSnapshots.toObjects(Task.class);
-                                //check if there is data with same id as data in room db
-                                new Thread(()->{
-                                    for (Task newTask: backedUpTasks) {
-                                        Task existingTask = localDatabase.taskDao().loadTaskById(newTask.id);
-                                        if (existingTask != null) {
-                                            //update firebase data id
-                                            newTask.id = null;
-                                            //change existing data date so
-                                        }
 
-
-                                    }
-
-                                    Log.d("size", String.valueOf(backedUpTasks.size()));
-                                    //save data to room
-                                    Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
-                                    hasDataLoaded = true;
-
-                                }).start();
+                                Log.d("size", String.valueOf(backedUpTasks.size()));
+                                //save data to room
+                                Util.saveDataToRoomDb(localDatabase.taskDao(), backedUpTasks);
+                                hasDataLoaded = true;
 
 
 
                             }
                         }
 
-                        new Thread(()->{
-                            //get first task to be added in room
-                            Task firstTask = localDatabase.taskDao().getFirstTask();
-                            String date = "";
-                            //if the covered size is zero, then register update token date as the first task date minus 5 minutes
-                            //this ensures all room data is synced when user creates subscription for the first time
-                            if(dataCount > 0 && firstTask != null) {
-
-                                // subtract date by 5 minutes
-                                date = Util.subtractFiveMinutes(firstTask.updatedAt);
-                            }
-
-                            //update last sync token
-                            Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName, date);
-                        }).start();
+                        String date = "";
+                        if(firstTask != null) {
+                            date = firstTask.updatedAt;
+                        }
+                        //update last sync token
+                        Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.tableName, date);
                         //notify the main ui thread
 //                    context.getContentResolver().notifyChange(Configs.URI_TASK, null, false);
                     })
@@ -161,16 +145,27 @@ public class  TaskController implements  MainController{
                                             if (docsList.size() > 0){
                                                 if (task.isDeleted == 1) {
                                                     //update covered size
-                                                    subscriptionController.updateCoveredSize(
-                                                            db.collection(Util.getUserName(context)).document(tableName).collection(tableName).document(docsList.get(0).getId())
-                                                            , false);
-                                                    //delete data from firebase
-                                                    db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                            .document(docsList.get(0).getId()).delete()
-                                                            .addOnSuccessListener(aVoid -> {
+                                                    db.collection(Util.getUserName(context)).document(tableName)
+                                                            .collection(tableName).document(docsList.get(0).getId())
+                                                            .get().addOnCompleteListener(task1->{
 
-                                                                Log.d("Deleting data", "successful");
-                                                            });
+                                                        if (task1.isSuccessful()){
+                                                            DocumentSnapshot document = task1.getResult();
+                                                            if (document.exists()) {
+                                                                long documentSize = firestoreDocument.getSize(document);
+                                                                subscriptionController.updateDatabases(documentSize, false);
+
+                                                                //delete data from firebase
+                                                                db.collection(Util.getUserName(context)).document(tableName)
+                                                                        .collection(tableName)
+                                                                        .document(docsList.get(0).getId()).delete()
+                                                                        .addOnSuccessListener(aVoid -> {
+
+                                                                            Log.d("Deleting data", "successful");
+                                                                        });
+                                                            }
+                                                        }
+                                                    });
                                                 }else {
                                                     updateServer(task, docsList.get(0).getId());
                                                 }
@@ -252,16 +247,27 @@ public class  TaskController implements  MainController{
                                             if (task.isDeleted == 1) {
 
                                                 //update covered size
-                                                subscriptionController.updateCoveredSize(
-                                                        db.collection(Util.getUserName(context)).document(tableName).collection(tableName).document(doc.getId())
-                                                        , false);
-                                                //delete data from firebase
-                                                db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                        .document(doc.getId()).delete()
-                                                        .addOnSuccessListener(aVoid -> {
+                                                db.collection(Util.getUserName(context)).document(tableName)
+                                                        .collection(tableName).document(doc.getId())
+                                                        .get().addOnCompleteListener(task1->{
 
-                                                            Log.d("Deleting data", "successful");
-                                                        });
+                                                    if (task1.isSuccessful()){
+                                                        DocumentSnapshot document = task1.getResult();
+                                                        if (document.exists()) {
+                                                            long documentSize = firestoreDocument.getSize(document);
+                                                            subscriptionController.updateDatabases(documentSize, false);
+
+                                                            //delete data from firebase
+                                                            db.collection(Util.getUserName(context)).document(tableName)
+                                                                    .collection(tableName)
+                                                                    .document(doc.getId()).delete()
+                                                                    .addOnSuccessListener(aVoid -> {
+
+                                                                        Log.d("Deleting data", "successful");
+                                                                    });
+                                                        }
+                                                    }
+                                                });
 
                                             } else {
                                                 //add data to map and update firestore

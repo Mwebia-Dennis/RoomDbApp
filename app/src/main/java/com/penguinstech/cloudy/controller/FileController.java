@@ -30,6 +30,8 @@ package com.penguinstech.cloudy.controller;
  import java.util.Set;
  import java.util.UUID;
 
+ import ro.alexmamo.firestore_document.FirestoreDocument;
+
 public class FileController implements MainController {
      Context context;
      AppDatabase localDatabase;
@@ -39,6 +41,7 @@ public class FileController implements MainController {
      final int PAGINATOR  = 100;
      String tableName;
     SubscriptionController subscriptionController;
+    FirestoreDocument firestoreDocument;
 
      public FileController(Context context, AppDatabase localDatabase){
 
@@ -49,15 +52,17 @@ public class FileController implements MainController {
          tableName = Configs.filesTableName;
          storageRef = FirebaseStorage.getInstance().getReference("files/"+Util.getUserName(context));
          subscriptionController = new SubscriptionController(context, localDatabase);
+         firestoreDocument = FirestoreDocument.getInstance();
 
      }
     @Override
-    public void syncAllDataFromFirestore(boolean isNewData) {
+    public void syncAllDataFromFirestore() {
 
          new Thread(()->{
 
 
-             int dataCount = localDatabase.fileDao().getCount();
+             //check if there is data in room and get the first data.
+             Files firstFile = localDatabase.fileDao().getFirstFile();
 
              //only store the links, no need to download
              db.collection(Util.getUserName(context)).document(tableName).collection(tableName).get()
@@ -75,40 +80,22 @@ public class FileController implements MainController {
 
                                  Log.d("size", String.valueOf(backedUpFiles.size()));
 
-                                 new Thread(()->{
-                                     for (Files newFile: backedUpFiles) {
-                                         Files existingFile = localDatabase.fileDao().loadFileById(newFile.id);
-                                         if (existingFile != null) {
-                                             //update firebase data id
-                                             newFile.id = null;
-                                         }
 
-
-                                     }
-
-
-                                     //save data to room
-                                     saveDataToRoomDb(backedUpFiles);
-                                     hasDataLoaded = true;
-
-                                 }).start();
+                                 //save data to room
+                                 saveDataToRoomDb(backedUpFiles);
+                                 hasDataLoaded = true;
                              }
                          }
 
 
-                         new Thread(()->{
-                             Files firstFile = localDatabase.fileDao().getFirstFile();
-                             String date = "";
-                             if(dataCount > 0 && firstFile != null) {
+                         String date = "";
+                         if(firstFile != null) {
+                             date = firstFile.updatedAt;
+                         }
 
-                                 // subtract date by 5 minutes
-                                 date = Util.subtractFiveMinutes(firstFile.updatedAt);
+                         //update last sync token
+                         Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName, date);
 
-                             }
-
-                             //update last sync token
-                             Util.updateToken(context, context.getContentResolver(),localDatabase,Configs.filesTableName, date);
-                         }).start();
                      })
                      .addOnFailureListener(e -> {
 
@@ -209,24 +196,38 @@ public class FileController implements MainController {
                                                     FirebaseStorage.getInstance().getReferenceFromUrl(file.firestorePath).getMetadata()
                                                             .addOnSuccessListener(storageMetadata -> {
                                                                 subscriptionController.updateDatabases(storageMetadata.getSizeBytes(), false);
-                                                            });
-                                                    //delete file and data from firebase
-                                                    FirebaseStorage.getInstance().getReferenceFromUrl(file.firestorePath).delete()
-                                                            .addOnSuccessListener(aVoid -> {
 
-                                                                Log.d("Deleting file", "successful");
+                                                                //delete file and data from firebase
+                                                                FirebaseStorage.getInstance().getReferenceFromUrl(file.firestorePath).delete()
+                                                                        .addOnSuccessListener(aVoid -> {
+
+                                                                            Log.d("Deleting file", "successful");
+                                                                        });
                                                             });
 
 
                                                     //update covered size
-                                                    subscriptionController.updateCoveredSize( db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                            .document(docsList.get(0).getId()), false);
-                                                    db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                            .document(docsList.get(0).getId()).delete()
-                                                            .addOnSuccessListener(aVoid -> {
 
-                                                                Log.d("Deleting data", "successful");
+                                                    db.collection(Util.getUserName(context)).document(tableName)
+                                                            .collection(tableName).document(docsList.get(0).getId())
+                                                            .get().addOnCompleteListener(task1-> {
+
+                                                                if (task1.isSuccessful()) {
+                                                                    DocumentSnapshot document = task1.getResult();
+                                                                    if (document.exists()) {
+                                                                        long documentSize = firestoreDocument.getSize(document);
+                                                                        subscriptionController.updateDatabases(documentSize, false);
+                                                                        db.collection(Util.getUserName(context))
+                                                                                .document(tableName).collection(tableName)
+                                                                                .document(docsList.get(0).getId()).delete()
+                                                                                .addOnSuccessListener(aVoid -> {
+
+                                                                                    Log.d("Deleting data", "successful");
+                                                                                });
+                                                                    }
+                                                                }
                                                             });
+
                                                 }else {
                                                     Files fireStoreFile = convertMapToFilesObject(docsList.get(0).getData());
                                                     updateServer(file,
@@ -339,22 +340,33 @@ public class FileController implements MainController {
                                                         .addOnSuccessListener(storageMetadata -> {
                                                             subscriptionController.updateDatabases(storageMetadata.getSizeBytes(),
                                                                     false);
-                                                        });
-                                                FirebaseStorage.getInstance().getReferenceFromUrl(files.firestorePath).delete()
-                                                        .addOnSuccessListener(aVoid -> {
+                                                            FirebaseStorage.getInstance().getReferenceFromUrl(files.firestorePath).delete()
+                                                                    .addOnSuccessListener(aVoid -> {
 
-                                                            Log.d("Deleting file", "successful");
+                                                                        Log.d("Deleting file", "successful");
+                                                                    });
                                                         });
 
-                                                subscriptionController.updateCoveredSize(db.collection(Util.getUserName(context))
-                                                                .document(tableName).collection(tableName).document(doc.getId()),
-                                                        false);
-                                                db.collection(Util.getUserName(context)).document(tableName).collection(tableName)
-                                                        .document(doc.getId()).delete()
-                                                        .addOnSuccessListener(aVoid -> {
+                                                db.collection(Util.getUserName(context)).document(tableName)
+                                                        .collection(tableName).document(doc.getId())
+                                                        .get().addOnCompleteListener(task1-> {
 
-                                                            Log.d("Deleting data", "successful");
-                                                        });
+                                                    if (task1.isSuccessful()) {
+                                                        DocumentSnapshot document = task1.getResult();
+                                                        if (document.exists()) {
+                                                            long documentSize = firestoreDocument.getSize(document);
+                                                            subscriptionController.updateDatabases(documentSize, false);
+                                                            db.collection(Util.getUserName(context))
+                                                                    .document(tableName).collection(tableName)
+                                                                    .document(doc.getId()).delete()
+                                                                    .addOnSuccessListener(aVoid -> {
+
+                                                                        Log.d("Deleting data", "successful");
+                                                                    });
+                                                        }
+                                                    }
+                                                });
+
 
                                             } else {
                                                 //add data to map and update firestore
@@ -389,22 +401,25 @@ public class FileController implements MainController {
                                                             .addOnSuccessListener(storageMetadata -> {
                                                                 subscriptionController.updateDatabases(storageMetadata.getSizeBytes(),
                                                                         true);
+
+                                                                task.getResult().getStorage()
+                                                                        .getDownloadUrl()
+                                                                        .addOnSuccessListener(uri->{
+
+                                                                    files.firestorePath = uri.toString();
+                                                                    db.collection(Util.getUserName(context))
+                                                                            .add(files)
+                                                                            .addOnSuccessListener(documentReference -> {
+                                                                                subscriptionController.updateCoveredSize(documentReference, true);
+                                                                                Log.d("firebase", "updated succesfully");
+                                                                            });
+                                                                    new Thread(()->{
+                                                                        localDatabase.fileDao().update(files);
+                                                                    }).start();
+
+                                                                });
                                                             });
 
-                                                    task.getResult().getStorage().getDownloadUrl().addOnSuccessListener(uri->{
-
-                                                        files.firestorePath = uri.toString();
-                                                        db.collection(Util.getUserName(context))
-                                                                .add(files)
-                                                                .addOnSuccessListener(documentReference -> {
-                                                                    subscriptionController.updateCoveredSize(documentReference, true);
-                                                                    Log.d("firebase", "updated succesfully");
-                                                                });
-                                                        new Thread(()->{
-                                                            localDatabase.fileDao().update(files);
-                                                        }).start();
-
-                                                    });
                                                 }
                                             });
 

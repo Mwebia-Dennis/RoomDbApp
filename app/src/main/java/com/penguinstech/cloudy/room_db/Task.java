@@ -41,6 +41,7 @@ public class Task {
 
     public Task(int id, String taskId, String title, String description, String updatedAt, int isDeleted) {
         this.id = id;
+        this.taskId = taskId;
         this.title = title;
         this.description = description;
         this.updatedAt = updatedAt;

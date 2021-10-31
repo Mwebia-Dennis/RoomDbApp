@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
         super.onResume();
         checkIfUserIsLoggedIn();
         getAllNotes();
-//        startWorker();
+        startWorker();
     }
 
     public void getAllNotes() {
