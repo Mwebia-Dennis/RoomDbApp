@@ -48,7 +48,6 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
     NotesAdapter adapter;
     List<Task> allTasks;
     ContentObserver mObserver;
-    Account mAccount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
             startActivity(new Intent(MainActivity.this, ImageActivity.class));
         }else if(item.getItemId() == R.id.sync) {
             Toast.makeText(this, "Syncing please wait", Toast.LENGTH_SHORT).show();
-            forceSyncing();
+            startWorker();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -92,39 +91,42 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
         Snackbar.make(findViewById(R.id.mainLayout), "Loading data please wait...", Snackbar.LENGTH_SHORT).show();
         getAllNotes();
 
-        mAccount = CreateSyncAccount(this);
-//        ContentResolver mResolver = getContentResolver();
+        startWorker();
+        //register an observer to notify when room db is updated
+//        mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+//            public void onChange(boolean selfChange) {
+//                Log.d("SyncAdapter notif: ", "received");
+//                try {
+//                    //delay for a second then check if db is updated
+//                    TimeUnit.MILLISECONDS.sleep(100);
+//                    Snackbar.make(findViewById(R.id.mainLayout), "Sync results updated successfully", Snackbar.LENGTH_LONG).show();
+//                    getAllNotes();
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        };
+//        getContentResolver().registerContentObserver(Configs.URI_TASK, true, mObserver);
+
+    }
+
+    private void startWorker() {
+
         /*
          * Turn on periodic syncing after every 1 hr
          */
 
-        ContentResolver.addPeriodicSync(
-                mAccount,
-                Configs.AUTHORITY,
-                Bundle.EMPTY,
-                (60 * 60));
+//        ContentResolver.addPeriodicSync(
+//                mAccount,
+//                Configs.AUTHORITY,
+//                Bundle.EMPTY,
+//                (60 * 60));
 //
         final PeriodicWorkRequest periodicWorkRequest
                 = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
                 .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build();
         WorkManager.getInstance(MainActivity.this).enqueue(periodicWorkRequest);
-
-        //register an observer to notify when room db is updated
-        mObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
-            public void onChange(boolean selfChange) {
-                Log.d("SyncAdapter notif: ", "received");
-                try {
-                    //delay for a second then check if db is updated
-                    TimeUnit.MILLISECONDS.sleep(100);
-                    Snackbar.make(findViewById(R.id.mainLayout), "Sync results updated successfully", Snackbar.LENGTH_LONG).show();
-                    getAllNotes();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        getContentResolver().registerContentObserver(Configs.URI_TASK, true, mObserver);
 
     }
 
@@ -141,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
         super.onResume();
         checkIfUserIsLoggedIn();
         getAllNotes();
+        startWorker();
     }
 
     public void getAllNotes() {
@@ -171,62 +174,6 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
         recyclerView.setAdapter(adapter);
     }
 
-
-
-
-    /**
-     * Create a new placeholder account for the sync adapter
-     *
-     * @param context The application context
-     */
-    public static Account CreateSyncAccount(Context context) {
-        // Create the account type and default account
-        Account newAccount = new Account(
-                Configs.ACCOUNT, Configs.ACCOUNT_TYPE);
-        // Get an instance of the Android account manager
-        AccountManager accountManager =
-                (AccountManager) context.getSystemService(
-                        ACCOUNT_SERVICE);
-        Log.i("mACCOUNT FUN", "PASSED");
-
-
-        /*
-         * Add the account and account type, no password or user data
-         * If successful, return the Account object, otherwise report an error.
-         */
-        if (accountManager.addAccountExplicitly(newAccount, null, null)) {
-
-            ContentResolver.setIsSyncable(newAccount, Configs.AUTHORITY, 1);
-            ContentResolver.setSyncAutomatically(newAccount, Configs.AUTHORITY, true);
-
-
-        } else {
-            /*
-             * The account exists or some other error occurred. Log this, report it,
-             * or handle it internally.
-             */
-
-            Log.d("Account", "exists");
-        }
-
-
-        return  newAccount;
-    }
-
-
-    private void forceSyncing() {
-
-        Bundle settingsBundle = new Bundle();
-        settingsBundle.putBoolean(
-                ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        settingsBundle.putBoolean(
-                ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-        /*
-         * Request the sync for the default account, authority, and
-         * manual sync settings
-         */
-        ContentResolver.requestSync(CreateSyncAccount(MainActivity.this), Configs.AUTHORITY, settingsBundle);
-    }
 
 
     @NonNull

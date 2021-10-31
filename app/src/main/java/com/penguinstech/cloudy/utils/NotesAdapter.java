@@ -54,6 +54,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.ViewHolder>{
 
             Intent intent = new Intent(holder.itemView.getContext(), AddTaskActivity.class);
             intent.putExtra("id", String.valueOf(task.id));
+            intent.putExtra("task_id", String.valueOf(task.taskId));
             intent.putExtra("title", String.valueOf(task.title));
             intent.putExtra("description", String.valueOf(task.description));
             intent.putExtra("isDeleted", String.valueOf(task.isDeleted));

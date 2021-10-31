@@ -12,7 +12,7 @@ import java.util.List;
 @Dao
 public interface TaskDao {
 
-    @Query("SELECT * FROM "+ Configs.tableName)
+    @Query("SELECT task_id, title, description, updated_at, is_deleted  FROM "+ Configs.tableName)
     List<Task> getAll();
 
 
@@ -30,7 +30,8 @@ public interface TaskDao {
     @Query("SELECT * FROM "+Configs.tableName+" where :colName = :value")
     List<Task> filterByCol(String colName, String value);
 
-    @Query("SELECT * FROM "+Configs.tableName+" where updated_at > :date order by updated_at asc limit :limit offset :offset")
+    @Query("SELECT task_id, title, description, updated_at, is_deleted FROM "+Configs.tableName+
+            " where updated_at >= :date order by updated_at asc limit :limit offset :offset")
     List<Task> filterByDate(String date, int limit, int offset);
 
     @Query("SELECT count(id) FROM "+Configs.tableName+" where updated_at > :date")
@@ -41,11 +42,14 @@ public interface TaskDao {
     int getCount();
 
 
-    @Query("SELECT count(id) FROM "+Configs.tableName+" WHERE id = :taskId")
-    int exists(int taskId);
+    @Query("SELECT count(id) FROM "+Configs.tableName+" WHERE task_id = :taskId")
+    int exists(String taskId);
 
-    @Query("SELECT * FROM "+Configs.tableName+" WHERE id = :taskId")
-    Task loadTaskById(int taskId);
+    @Query("SELECT * FROM "+Configs.tableName+" order by updated_at asc limit 1")
+    Task getFirstTask();
+
+    @Query("SELECT * FROM "+Configs.tableName+" WHERE id = :id")
+    Task loadTaskById(int id);
 
     @Insert
     void insertAll(List<Task> tasks);

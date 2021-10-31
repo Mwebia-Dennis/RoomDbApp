@@ -1,8 +1,5 @@
 <resources>
     <string name="app_name">RoomDbApp</string>
-    <string name="authority">com.penguinstech.cloudy.provider</string>
-    <string name="account_type">penguinstech.com</string>
-
 
     <string name="click_me">Click Me</string>
     <string name="get_data">get data</string>
@@ -14,6 +11,7 @@
     <string name="firestore">Firestore</string>
     <string name="room_db">Room DB</string>
     <string name="subscribe">Subscribe</string>
+    <string name="_0_total_space">Total Size: 0mb</string>
     <string name="_0mb_space">0mb Space</string>
     <string name="_5mb_space">5mb Space</string>
     <string name="_10mb_space">10mb Space</string>
@@ -21,7 +19,7 @@
     <string name="bronze">Bronze</string>
     <string name="silver">Silver</string>
     <string name="gold">Gold</string>
-    <string name="current_plan">Your are using a free subscription plan</string>
+    <string name="current_plan">Plan: free</string>
     <string name="bronze_plan">Your are now on bronze subscription plan</string>
     <string name="silver_plan">Your are now on silver subscription plan</string>
     <string name="gold_plan">Your are now on gold subscription plan</string>
@@ -38,4 +36,6 @@
     <string name="sync">Sync</string>
     <string name="_1000">$1000</string>
     <string name="manage_subscriptions">Manage Subscriptions</string>
+    <string name="used_space_0mb">Used space: 0mb</string>
+    <string name="pricing">Pricing</string>
 </resources>

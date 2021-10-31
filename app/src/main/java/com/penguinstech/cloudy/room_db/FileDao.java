@@ -13,7 +13,7 @@ import java.util.List;
 @Dao
 public interface FileDao {
 
-    @Query("SELECT * FROM "+ Configs.filesTableName)
+    @Query("SELECT file_id, device_id, local_path, firestore_path, updated_at, is_deleted  FROM "+ Configs.filesTableName)
     List<Files> getAll();
 
 
@@ -28,10 +28,11 @@ public interface FileDao {
     @Query("SELECT * FROM "+Configs.filesTableName+" order by updated_at desc limit 1")
     List<Files> getLatestFile();
 
-    @Query("SELECT * FROM "+Configs.filesTableName+" where :colName = :value")
+    @Query("SELECT file_id, device_id, local_path, firestore_path, updated_at, is_deleted FROM "+Configs.filesTableName+" where :colName = :value")
     List<Files> filterByCol(String colName, String value);
 
-    @Query("SELECT * FROM "+Configs.filesTableName+" where updated_at > :date order by updated_at asc limit :limit offset :offset")
+    @Query("SELECT file_id, device_id, local_path, firestore_path, updated_at, is_deleted FROM "+Configs.filesTableName+
+            " where updated_at >= :date order by updated_at asc limit :limit offset :offset")
     List<Files> filterByDate(String date, int limit, int offset);
 
     @Query("SELECT count(id) FROM "+Configs.filesTableName+" where updated_at > :date")
@@ -42,11 +43,14 @@ public interface FileDao {
     int getCount();
 
 
-    @Query("SELECT count(id) FROM "+Configs.filesTableName+" WHERE id = :fileId")
-    int exists(int fileId);
+    @Query("SELECT * FROM "+Configs.filesTableName+" WHERE id = :id")
+    Files loadFileById(int id);
 
-    @Query("SELECT * FROM "+Configs.filesTableName+" WHERE id = :fileId")
-    Files loadFileById(int fileId);
+    @Query("SELECT count(id) FROM "+Configs.filesTableName+" WHERE file_id = :fileId")
+    int exists(String fileId);
+
+    @Query("SELECT * FROM "+Configs.filesTableName+" order by updated_at asc limit 1")
+    Files getFirstFile();
 
     @Insert
     void insertAll(List<Files> files);

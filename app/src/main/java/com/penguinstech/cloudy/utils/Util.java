@@ -15,18 +15,25 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.penguinstech.cloudy.room_db.AppDatabase;
+import com.penguinstech.cloudy.room_db.Files;
 import com.penguinstech.cloudy.room_db.Subscription;
 import com.penguinstech.cloudy.room_db.SubscriptionDao;
 import com.penguinstech.cloudy.room_db.Task;
 import com.penguinstech.cloudy.room_db.TaskDao;
 import com.penguinstech.cloudy.room_db.Token;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class Util {
 
@@ -40,13 +47,18 @@ public class Util {
         return context.getSharedPreferences("userCredentials", Context.MODE_PRIVATE).getString("user_name", "");
     }
 
-    public static void saveDataToRoomDb(TaskDao taskDao, List<Task> task) {
+    public static void saveDataToRoomDb(TaskDao taskDao, List<Task> taskList) {
 
         new Thread() {
             @Override
             public void run() {
 
-                taskDao.insertAll(task);
+                //remove duplicates
+                Set<Task> set = new LinkedHashSet<>(taskList);
+                taskList.clear();
+                taskList.addAll(set);
+                //add to database
+                taskDao.insertAll(taskList);
                 Log.d("Local db ", "all objects added to db");
             }
         }.start();
@@ -54,13 +66,16 @@ public class Util {
 
 
 
-    public static void updateToken(Context context, ContentResolver contentResolver, AppDatabase localDatabase, String tableName) {
+    public static void updateToken(Context context, ContentResolver contentResolver, AppDatabase localDatabase, String tableName, String date) {
 
         DatabaseReference firebaseDatabase;//firebase realtime db
         firebaseDatabase = FirebaseDatabase.getInstance().getReference();
         //update both local and firestore last sync date
         String deviceId= Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID);
-        Token newToken = new Token(deviceId, tableName, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date()));
+        if (date.equals("")) {
+            date = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH).format(new Date());
+        }
+        Token newToken = new Token(deviceId, tableName, date);
 
         firebaseDatabase.child(Util.getUserName(context)).child(tableName).child("last_sync_token").setValue(newToken).addOnSuccessListener(aVoid -> {
 
@@ -120,6 +135,7 @@ public class Util {
         }).start();
     }
 
+
     public static void saveSubscriptionToRoomDb(SubscriptionDao subscriptionDao, Subscription subscription) {
 
         new Thread() {
@@ -176,8 +192,43 @@ public class Util {
         return gson.fromJson(jsonElement, Task.class);
     }
 
+    public static long getPlanTotalSize(String planId) {
+
+        long totalSize = 0;
+        AppSubscriptionPlans[] appSubscriptionPlans = {AppSubscriptionPlans.FREE, AppSubscriptionPlans.BRONZE,
+                AppSubscriptionPlans.SILVER,AppSubscriptionPlans.GOLD};
+        for (AppSubscriptionPlans plan:appSubscriptionPlans){
+
+            if (plan.getKey().equals(planId)) {
+                totalSize = plan.getValue();
+                break;
+            }
+        }
+        return totalSize;
+    }
+
+    public static String subtractFiveMinutes(String currentDate) {
+        Calendar cal = Calendar.getInstance();
+        String date = currentDate;
+        try {
+            SimpleDateFormat format =new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH);
+            cal.setTime(format.parse(currentDate));
+            cal.add(Calendar.MINUTE, -5);
+            date = format.format(cal.getTime());
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return date;
+
+    }
+
     public static long convertMbToBytes(long sizeInMb) {
         return sizeInMb * 1024*1024;
+    }
+    public static long convertBytesToMb(long sizeInBytes) {
+        return sizeInBytes / (1024*1024);
     }
     public static long convertGbToBytes(long sizeInMb) {
         return sizeInMb * 1024*1024*1024;
