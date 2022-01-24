@@ -1,11 +1,21 @@
 package com.penguinstech.cloudy.sync;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.Service;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 import androidx.room.Room;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -18,6 +28,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.penguinstech.cloudy.R;
 import com.penguinstech.cloudy.controller.FileController;
 import com.penguinstech.cloudy.controller.TaskController;
 import com.penguinstech.cloudy.room_db.AppDatabase;
@@ -34,8 +45,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class SyncWorker extends Worker {
-    Context context;
+public class SyncService extends Service {
+    Context context = this;
     ContentResolver contentResolver;
     FirebaseFirestore db;//firestore instance
     DatabaseReference firebaseDatabase;//firebase realtime db
@@ -43,26 +54,36 @@ public class SyncWorker extends Worker {
     long limiter = 5;
     final int PAGINATOR  = 100;
 
-    public SyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
-        super(context, workerParams);
-        this.context = context;
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+//        android.os.Debug.waitForDebugger();
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId)
+    {
+        //run the sync adapter
+//        forceSyncing();
+
+        //since we are using foreground service, we must show notification before within the first 5 minutes
+        // otherwise service will be killed
+        showNotification();
+
+
         contentResolver = context.getContentResolver();
         FirebaseApp.initializeApp(context);
         db = FirebaseFirestore.getInstance();
         localDatabase = Room.databaseBuilder(context,
                 AppDatabase.class, Configs.DatabaseName).build();
-        this.context = context;
         firebaseDatabase = FirebaseDatabase.getInstance().getReference();
-
-//        android.os.Debug.waitForDebugger();
-    }
-
-    @NonNull
-    @Override
-    public Result doWork() {
-
-        //run the sync adapter
-//        forceSyncing();
 
         Log.i("perfomingSync", "True");
         //ensure user id exists
@@ -89,14 +110,14 @@ public class SyncWorker extends Worker {
                     //user has no subscription set.
                     Util.setNewSubscription(localDatabase,userName);
                 }
+            }).addOnFailureListener(e->{
+                Log.i("firebase error: ", e.getMessage());
+                stopSelf();
             });
 
 
         }
-
-
-        // Indicate whether the work finished successfully with the Result
-        return Result.success();
+        return START_STICKY;
     }
 
 
@@ -315,5 +336,33 @@ public class SyncWorker extends Worker {
 
         });
 
+    }
+
+
+    private void showNotification() {
+
+        final String NOTIFICATION_CHANNEL_ID = "com.penguinstech.cloudy.sync.notification";
+        final String channelName = "Sync Notifications";
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O){
+            NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_HIGH);
+            chan.setLightColor(Color.BLUE);
+            chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            assert manager != null;
+            manager.createNotificationChannel(chan);
+        }
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID);
+        notificationBuilder
+                .setContentTitle(getString(R.string.app_name))
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentText("Backing Up data in progress...")
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setCategory(Notification.CATEGORY_SERVICE);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            notificationBuilder.setPriority(NotificationManager.IMPORTANCE_MIN);
+        }
+        startForeground(1, notificationBuilder.build());
     }
 }

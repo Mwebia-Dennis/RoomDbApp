@@ -11,15 +11,9 @@ import androidx.work.NetworkType;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,8 +25,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.penguinstech.cloudy.room_db.AppDatabase;
 import com.penguinstech.cloudy.room_db.Task;
 import com.penguinstech.cloudy.room_db.TaskDao;
+import com.penguinstech.cloudy.sync.SyncReceiver;
 import com.penguinstech.cloudy.utils.Util;
-import com.penguinstech.cloudy.sync.SyncWorker;
+import com.penguinstech.cloudy.sync.SyncService;
 import com.penguinstech.cloudy.utils.Configs;
 import com.penguinstech.cloudy.utils.NotesAdapter;
 
@@ -116,17 +111,19 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
          * Turn on periodic syncing after every 1 hr
          */
 
+        new SyncReceiver().setScheduler(MainActivity.this);
+
 //        ContentResolver.addPeriodicSync(
 //                mAccount,
 //                Configs.AUTHORITY,
 //                Bundle.EMPTY,
 //                (60 * 60));
 //
-        final PeriodicWorkRequest periodicWorkRequest
-                = new PeriodicWorkRequest.Builder(SyncWorker.class, 15, TimeUnit.MINUTES)
-                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build();
-        WorkManager.getInstance(MainActivity.this).enqueue(periodicWorkRequest);
+//        final PeriodicWorkRequest periodicWorkRequest
+//                = new PeriodicWorkRequest.Builder(SyncService.class, 15, TimeUnit.MINUTES)
+//                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+//                .build();
+//        WorkManager.getInstance(MainActivity.this).enqueue(periodicWorkRequest);
 
     }
 
@@ -143,7 +140,7 @@ public class MainActivity extends AppCompatActivity implements  Configuration.Pr
         super.onResume();
         checkIfUserIsLoggedIn();
         getAllNotes();
-        startWorker();
+//        startWorker();
     }
 
     public void getAllNotes() {
