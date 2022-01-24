@@ -77,6 +77,9 @@ public class  TaskController implements  MainController{
 
                         String date = "";
                         if(firstTask != null) {
+                            //if first task is not empty then it means room was not empty
+                            //set token date as the first task
+                            //next sync will ensure all data is synced to firetore
                             date = firstTask.updatedAt;
                         }
                         //update last sync token
